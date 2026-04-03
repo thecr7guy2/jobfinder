@@ -1,0 +1,53 @@
+sources:
+  - id: booking_com
+    name: Booking.com
+    careers_url: https://jobs.booking.com/booking/jobs
+    status: active
+    extraction_method: api
+    scraper_type: icims
+    runtime_config: config/companies.yaml
+    last_verified: 2026-04-03
+    notes:
+      - Public iCIMS API works at https://jobs.booking.com/api/jobs
+      - Runtime filters use Netherlands plus ML/Data categories
+      - No browser automation required
+
+  - id: tno
+    name: TNO
+    careers_url: https://www.tno.nl/en/careers/vacancies/
+    status: active
+    extraction_method: html
+    scraper_type: html
+    runtime_config: config/companies.yaml
+    last_verified: 2026-04-03
+    notes:
+      - Listings and detail pages are server-rendered HTML
+      - Runtime filters come from the exact vacancy URL query params
+      - No browser automation required
+
+  - id: asml
+    name: ASML
+    careers_url: https://www.asml.com/en/careers/find-your-job
+    status: skipped
+    extraction_method: unknown
+    scraper_type: none
+    runtime_config: null
+    last_verified: 2026-04-03
+    notes:
+      - Search page is a Next.js shell
+      - Static HTML did not expose usable listing results
+      - We are intentionally skipping Playwright
+    blocker: No confirmed non-browser listing endpoint
+
+  - id: adyen
+    name: Adyen
+    careers_url: https://careers.adyen.com/vacancies
+    status: investigating
+    extraction_method: nuxt_payload
+    scraper_type: custom
+    runtime_config: null
+    last_verified: 2026-04-03
+    notes:
+      - Vacancies page is SSR Nuxt and includes __NUXT_DATA__
+      - Public vacancy detail pages exist
+      - Looks feasible without Playwright, but not implemented yet
