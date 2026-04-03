@@ -56,3 +56,17 @@ companies:
       "filters[Workexperience][]":
         - 2+ years
         - 5+ years
+
+  - id: ing
+    name: ING
+    type: ing
+    api_url: https://careers.ing.com/en/search-jobs/resultspost
+    ttl_hours: 6
+    filters:
+      facet_filters:
+        - id: "2750405"
+          facet_type: 2
+          display: Netherlands
+        - id: "32178240"
+          facet_type: 1
+          display: Data Science

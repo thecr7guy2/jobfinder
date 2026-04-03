@@ -64,3 +64,16 @@ sources:
       - Public vacancy API works at https://www.werkenbijabnamro.nl/en/api/vacancy/
       - Verified runtime filters combine Department=Data & Analytics, Country=Netherlands, and Workexperience=2+ years plus 5+ years
       - Vacancy detail pages expose JobPosting JSON-LD for description and posted date
+
+  - id: ing
+    name: ING
+    careers_url: https://careers.ing.com/en/search-jobs
+    status: active
+    extraction_method: api
+    scraper_type: ing
+    runtime_config: config/companies.yaml
+    last_verified: 2026-04-03
+    notes:
+      - Search page exposes Radancy search endpoints at https://careers.ing.com/en/search-jobs/results and https://careers.ing.com/en/search-jobs/resultspost
+      - Runtime filters use Country=Netherlands and Expertise=Data Science
+      - Job detail pages are server-rendered and expose JobPosting JSON-LD

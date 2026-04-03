@@ -21,6 +21,7 @@ Active sources today:
 - TNO
 - Adyen
 - ABN AMRO
+- ING
 
 Current implementation rules:
 - prefer direct APIs when available
@@ -72,6 +73,7 @@ Main deliverables in this repo:
 - [`scrapers/html.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/html.py)
 - [`scrapers/greenhouse.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/greenhouse.py)
 - [`scrapers/abn_amro.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/abn_amro.py)
+- [`scrapers/ing.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/ing.py)
 - [`fetch_jobs.py`](/Users/sai/Documents/Projects/jobfinder/fetch_jobs.py)
 - [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json)
 - `data/cache/`
@@ -198,6 +200,7 @@ uv run python fetch_jobs.py --company booking_com
 uv run python fetch_jobs.py --company tno
 uv run python fetch_jobs.py --company adyen
 uv run python fetch_jobs.py --company abn_amro
+uv run python fetch_jobs.py --company ing
 ```
 
 ## Data Model
