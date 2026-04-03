@@ -77,3 +77,16 @@ sources:
       - Search page exposes Radancy search endpoints at https://careers.ing.com/en/search-jobs/results and https://careers.ing.com/en/search-jobs/resultspost
       - Runtime filters use Country=Netherlands and Expertise=Data Science
       - Job detail pages are server-rendered and expose JobPosting JSON-LD
+
+  - id: albert_heijn
+    name: Albert Heijn
+    careers_url: https://werk.ah.nl/en/vacancies/contract-type/fulltime/department-1/data-science-1
+    status: active
+    extraction_method: api
+    scraper_type: albert_heijn
+    runtime_config: config/companies.yaml
+    last_verified: 2026-04-03
+    notes:
+      - Public vacancy JSON works at https://werk.ah.nl/en/api/vacancy/ when requested with X-Requested-With: XMLHttpRequest
+      - Verified runtime filters are Contract Type=Fulltime and Department=Data science from the provided vacancies URL
+      - Vacancy detail pages are server-rendered and expose JobPosting JSON-LD for description and posted date

@@ -70,3 +70,16 @@ companies:
         - id: "32178240"
           facet_type: 1
           display: Data Science
+
+  - id: albert_heijn
+    name: Albert Heijn
+    type: albert_heijn
+    careers_url: https://werk.ah.nl/en/vacancies/contract-type/fulltime/department-1/data-science-1
+    api_url: https://werk.ah.nl/en/api/vacancy/
+    job_url_template: https://werk.ah.nl/en/vacancy/{id}/{slug}
+    ttl_hours: 6
+    filters:
+      "filters[Contract Type][]":
+        - Fulltime
+      "filters[Department][]":
+        - Data science
