@@ -1,0 +1,30 @@
+companies:
+  - id: booking_com
+    name: Booking.com
+    type: icims
+    api_url: https://jobs.booking.com/api/jobs
+    job_url_template: https://jobs.booking.com/booking/jobs/{slug}?lang=en-us
+    ttl_hours: 6
+    filters:
+      location: Netherlands
+      woe: "12"
+      regionCode: NL
+      stretchUnit: MILES
+      stretch: "25"
+      categories: "Data Science & Analytics|ML Engineering|ML Science"
+
+  - id: tno
+    name: TNO
+    type: html
+    url: https://www.tno.nl/en/careers/vacancies/
+    ttl_hours: 6
+    filters:
+      zoeken_term: ""
+      "Zoe_Selected_facet:Careers Ervaring": "829"
+      "Zoe_Selected_facet:Careers Opleidingsniveau": "647"
+      "Zoe_Selected_facet:Careers Vakgebied": "759"
+    selectors:
+      job_card: "div.ipx-pt-vacancy"
+      title: "h3"
+      link: "a"
+      location: "dd.extra-werklocatie"

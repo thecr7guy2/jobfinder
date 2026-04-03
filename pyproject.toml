@@ -1,0 +1,19 @@
+[project]
+name = "jobfinder"
+version = "0.1.0"
+description = "Phase 1 job scraping pipeline"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.13.4",
+  "curl-cffi>=0.13.0",
+  "PyYAML>=6.0.2",
+  "requests>=2.32.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["scrapers"]
+include = ["fetch_jobs.py"]
