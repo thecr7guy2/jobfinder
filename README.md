@@ -18,6 +18,7 @@ Supported active sources:
 - Booking.com
 - TNO
 - Adyen
+- ABN AMRO
 
 Investigated sources:
 
@@ -46,6 +47,7 @@ jobfinder/
 │   ├── masterplan.md
 │   └── scraper_plan.md
 ├── scrapers/
+│   ├── abn_amro.py
 │   ├── __init__.py
 │   ├── base.py
 │   ├── greenhouse.py
@@ -124,6 +126,17 @@ Current behavior:
 - applies exact runtime filters for location and team
 - normalizes jobs into the common schema
 
+### `abn_amro`
+
+Used for ABN AMRO.
+
+Current behavior:
+
+- calls the public vacancy API directly
+- applies the exact verified Department, Country, and combined Workexperience filters
+- enriches listings from vacancy detail pages via JobPosting JSON-LD
+- normalizes jobs into the common schema
+
 ## Normalized Output
 
 The normalized job store is written to:
@@ -180,6 +193,7 @@ uv run python fetch_jobs.py --force
 uv run python fetch_jobs.py --company booking_com
 uv run python fetch_jobs.py --company tno
 uv run python fetch_jobs.py --company adyen
+uv run python fetch_jobs.py --company abn_amro
 ```
 
 ### Force refresh one company
@@ -224,6 +238,16 @@ uv run python fetch_jobs.py --force --company booking_com
   - `Data Analytics`
   - `Development`
   - `NextGen`
+
+### ABN AMRO
+
+- extraction method: API
+- scraper type: `abn_amro`
+- current runtime filters:
+  - `Department=Data & Analytics`
+  - `Country=Netherlands`
+  - `Workexperience=2+ years`
+  - `Workexperience=5+ years`
 
 ## Workflow For New Companies
 

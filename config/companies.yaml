@@ -40,3 +40,19 @@ companies:
         - Data Analytics
         - Development
         - NextGen
+
+  - id: abn_amro
+    name: ABN AMRO
+    type: abn_amro
+    api_url: https://www.werkenbijabnamro.nl/en/api/vacancy/
+    job_url_template: https://www.werkenbijabnamro.nl/en/vacancy/{id}/{slug}
+    ttl_hours: 6
+    filters:
+      sort: created
+      sortDir: DESC
+      "filters[Department]": Data & Analytics
+      "filters[Country][]":
+        - Netherlands
+      "filters[Workexperience][]":
+        - 2+ years
+        - 5+ years
