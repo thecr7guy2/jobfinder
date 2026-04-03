@@ -109,6 +109,7 @@ Choose one of:
 
 Choose a scraper type:
 
+- `greenhouse`
 - `icims`
 - `html`
 - `custom`
@@ -255,10 +256,10 @@ It should contain:
 
 ### Adyen
 
-- status: `investigating`
-- extraction method: `nuxt_payload`
-- scraper type: `custom`
-- reason: SSR payload exists and detail pages are public, but runtime implementation is not done yet
+- status: `active`
+- extraction method: `api`
+- scraper type: `greenhouse`
+- reason: the careers site resolves to the public Greenhouse Boards API, so jobs can be fetched directly without browser automation
 
 ## Default Rule For Future Additions
 

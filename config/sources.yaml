@@ -42,12 +42,12 @@ sources:
   - id: adyen
     name: Adyen
     careers_url: https://careers.adyen.com/vacancies
-    status: investigating
-    extraction_method: nuxt_payload
-    scraper_type: custom
-    runtime_config: null
+    status: active
+    extraction_method: api
+    scraper_type: greenhouse
+    runtime_config: config/companies.yaml
     last_verified: 2026-04-03
     notes:
-      - Vacancies page is SSR Nuxt and includes __NUXT_DATA__
-      - Public vacancy detail pages exist
-      - Looks feasible without Playwright, but not implemented yet
+      - Public Greenhouse Boards API works at https://boards-api.greenhouse.io/v1/boards/adyen/jobs?content=true
+      - Runtime filters use Amsterdam plus Data Analytics, Development, and NextGen
+      - No browser automation required
