@@ -1,37 +1,149 @@
 # JobFinder
 
-JobFinder is a personal job discovery pipeline.
+JobFinder is a personal job discovery and application tracking system.
 
-The current implementation is focused on Phase 1:
+The intended end state is:
+- monitor target company career pages
+- normalize and deduplicate jobs into a repo-backed store
+- score roles against a resume
+- alert on strong matches via Telegram
+- review jobs in a GitHub Pages dashboard
+- generate tailored cover letters on approval
 
-- fetch jobs from supported company career sources
-- normalize them into one JSON store
-- cache raw source responses
-- make it easy to keep adding new companies over time
+Everything is designed to run on GitHub infrastructure: Actions for scheduling, Pages for the frontend, and the repository itself as the database.
 
 ## Current Status
 
-Phase 1 is implemented.
+The repository currently implements Phase 1 only: job scraping, normalization, and cache-backed refresh.
 
-Supported active sources:
-
+Active sources today:
 - Booking.com
 - TNO
 - Adyen
 - ABN AMRO
 
-Investigated sources:
-
-- ASML: skipped
-
-The current project rule is:
-
-- use direct APIs when available
+Current implementation rules:
+- prefer direct APIs when available
 - use static HTML when possible
-- do not use Playwright
 - skip sources that require browser automation
 
-## Repository Structure
+## Problem
+
+Most missed opportunities happen because the role was never seen in time. JobFinder is meant to solve that by continuously watching a small set of target companies and surfacing relevant openings automatically.
+
+## Planned User Flow
+
+```text
+companies.yaml
+     |
+     v
+fetch_jobs.py  -- cache check --> scrape / API call
+     |
+     v
+data/jobs.json  (normalized, deduplicated)
+     |
+     v
+match_jobs.py  -- staged filter --> LLM score
+     |
+     v
+Telegram alert  (score >= threshold)
+     |
+     v
+GitHub Pages dashboard
+     |
+     |-- Review job -> Apply / Skip
+     |-- Generate cover letter -> cover_letters/{company}-{role}-{date}.md
+     `-- Track status -> Applied / Interview / Offer / Rejected
+```
+
+## Roadmap
+
+### Phase 1 - Scraper
+
+Goal: fetch jobs from target companies into one normalized JSON store with TTL-based caching.
+
+Status: implemented.
+
+Main deliverables in this repo:
+- [`config/companies.yaml`](/Users/sai/Documents/Projects/jobfinder/config/companies.yaml)
+- [`config/sources.yaml`](/Users/sai/Documents/Projects/jobfinder/config/sources.yaml)
+- [`scrapers/base.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/base.py)
+- [`scrapers/icims.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/icims.py)
+- [`scrapers/html.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/html.py)
+- [`scrapers/greenhouse.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/greenhouse.py)
+- [`scrapers/abn_amro.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/abn_amro.py)
+- [`fetch_jobs.py`](/Users/sai/Documents/Projects/jobfinder/fetch_jobs.py)
+- [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json)
+- `data/cache/`
+
+Done when:
+- `uv run python fetch_jobs.py` collects jobs for configured companies
+- rerunning within TTL reuses cache instead of refetching
+
+### Phase 2 - Matching
+
+Goal: score each new job against a plain-text resume using a cheap-first staged pipeline.
+
+Planned deliverables:
+- `data/resume.txt`
+- `match_jobs.py`
+- match data written back into `data/jobs.json`
+
+Planned stages:
+1. title filter
+2. location filter
+3. keyword overlap heuristic
+4. LLM score for shortlisted roles only
+
+### Phase 3 - Telegram Alerts
+
+Goal: notify when a new job crosses the score threshold.
+
+Planned deliverables:
+- `notify.py`
+- deduplicated alerts recorded in `jobs.json`
+- scraper failure warnings when a source unexpectedly goes empty
+
+### Phase 4 - GitHub Pages Dashboard
+
+Goal: provide a static dashboard to review jobs and track application status.
+
+Planned views:
+- Inbox
+- Tracker
+- Dashboard
+
+Planned approach:
+- load `data/jobs.json` from the repository
+- update state through the GitHub API
+- redeploy Pages on repo change
+
+### Phase 5 - Cover Letter Generation
+
+Goal: generate a tailored cover letter when a job is approved.
+
+Planned deliverables:
+- `data/cover_letter_template.md`
+- `generate_cover_letter.py`
+- `cover_letters/*.md`
+- Telegram file delivery for generated letters
+
+### Phase 6 - GitHub Actions Automation
+
+Goal: run the full pipeline without manual intervention.
+
+Planned workflows:
+- `scrape.yml`: fetch, match, notify
+- `cover_letter.yml`: generate approved cover letters
+- `deploy.yml`: publish GitHub Pages
+
+Expected secrets:
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `GEMINI_API_KEY`
+- `GH_PAT`
+
+## Repository Layout
 
 ```text
 jobfinder/
@@ -48,7 +160,6 @@ jobfinder/
 │   └── scraper_plan.md
 ├── scrapers/
 │   ├── abn_amro.py
-│   ├── __init__.py
 │   ├── base.py
 │   ├── greenhouse.py
 │   ├── html.py
@@ -58,93 +169,42 @@ jobfinder/
 └── uv.lock
 ```
 
-## Important Files
+## Current Usage
 
-### `config/companies.yaml`
+This project uses `uv` and currently supports the scraper pipeline only.
 
-Runtime scraper configuration for active sources only.
+Install dependencies:
 
-This includes:
+```bash
+uv sync
+```
 
-- source URLs
-- scraper type
-- exact working filters
-- TTL settings
-- selectors or URL templates
+Fetch all active companies:
 
-### `config/sources.yaml`
+```bash
+uv run python fetch_jobs.py
+```
 
-Source registry for all evaluated companies.
+Force refresh all active companies:
 
-This is where we track:
+```bash
+uv run python fetch_jobs.py --force
+```
 
-- source status
-- extraction method
-- scraper type
-- notes
-- blockers
-- last verification date
+Fetch one company:
 
-### `docs/company_source_onboarding.md`
+```bash
+uv run python fetch_jobs.py --company booking_com
+uv run python fetch_jobs.py --company tno
+uv run python fetch_jobs.py --company adyen
+uv run python fetch_jobs.py --company abn_amro
+```
 
-The procedure for evaluating and adding a new company source.
+## Data Model
 
-Use this whenever a new careers URL is introduced.
+Current normalized jobs are stored in [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json).
 
-## Implemented Scraper Types
-
-### `icims`
-
-Used for Booking.com.
-
-Current behavior:
-
-- calls the public API directly
-- applies exact runtime query filters
-- paginates through results
-- normalizes jobs into the common schema
-
-### `html`
-
-Used for TNO.
-
-Current behavior:
-
-- fetches the filtered listing page
-- follows detail pages
-- extracts normalized fields from server-rendered HTML
-- stores raw detail-derived payloads in cache
-
-### `greenhouse`
-
-Used for Adyen.
-
-Current behavior:
-
-- calls the public Greenhouse Boards API directly
-- fetches jobs with embedded job content
-- applies exact runtime filters for location and team
-- normalizes jobs into the common schema
-
-### `abn_amro`
-
-Used for ABN AMRO.
-
-Current behavior:
-
-- calls the public vacancy API directly
-- applies the exact verified Department, Country, and combined Workexperience filters
-- enriches listings from vacancy detail pages via JobPosting JSON-LD
-- normalizes jobs into the common schema
-
-## Normalized Output
-
-The normalized job store is written to:
-
-- [data/jobs.json](/Users/sai/Documents/Projects/jobfinder/data/jobs.json)
-
-Each job record includes fields such as:
-
+Each record includes core fields such as:
 - `id`
 - `company_id`
 - `company_name`
@@ -158,129 +218,25 @@ Each job record includes fields such as:
 - `last_seen`
 - `source`
 
-## Cache Behavior
+The planned end-state schema also includes match metadata, alert metadata, and application lifecycle state.
 
-Each company has a raw cache file in:
+## Tech Choices
 
-- [data/cache/](/Users/sai/Documents/Projects/jobfinder/data/cache)
+Current stack:
+- Python 3.11+
+- `requests`
+- `beautifulsoup4`
+- `PyYAML`
+- JSON files in-repo for state
 
-Cache is TTL-based.
+Planned additions:
+- LLM-based matching
+- Telegram notifications
+- GitHub Pages frontend
+- GitHub Actions automation
 
-On a normal run:
+## Notes
 
-- if cache is fresh, the cached raw payload is reused
-- if cache is stale, the source is fetched again
-
-## How To Run
-
-This project uses `uv`.
-
-### Fetch all active companies
-
-```bash
-uv run python fetch_jobs.py
-```
-
-### Force refresh all active companies
-
-```bash
-uv run python fetch_jobs.py --force
-```
-
-### Fetch one company only
-
-```bash
-uv run python fetch_jobs.py --company booking_com
-uv run python fetch_jobs.py --company tno
-uv run python fetch_jobs.py --company adyen
-uv run python fetch_jobs.py --company abn_amro
-```
-
-### Force refresh one company
-
-```bash
-uv run python fetch_jobs.py --force --company booking_com
-```
-
-## Current Active Source Details
-
-### Booking.com
-
-- extraction method: API
-- scraper type: `icims`
-- current runtime filters:
-  - Netherlands
-  - `woe=12`
-  - `regionCode=NL`
-  - `stretchUnit=MILES`
-  - `stretch=25`
-  - categories:
-    - `Data Science & Analytics`
-    - `ML Engineering`
-    - `ML Science`
-
-### TNO
-
-- extraction method: HTML
-- scraper type: `html`
-- current runtime filters are taken from the exact filtered vacancy URL
-- current runtime filters include:
-  - experience
-  - education level
-  - vacancy field
-
-### Adyen
-
-- extraction method: API
-- scraper type: `greenhouse`
-- current runtime filters:
-  - Amsterdam
-  - `Data Analytics`
-  - `Development`
-  - `NextGen`
-
-### ABN AMRO
-
-- extraction method: API
-- scraper type: `abn_amro`
-- current runtime filters:
-  - `Department=Data & Analytics`
-  - `Country=Netherlands`
-  - `Workexperience=2+ years`
-  - `Workexperience=5+ years`
-
-## Workflow For New Companies
-
-When adding a new company:
-
-1. start with the exact careers URL the user provides
-2. determine whether the source is:
-   - API
-   - static HTML
-   - embedded payload
-   - unusable without browser automation
-3. record the result in [config/sources.yaml](/Users/sai/Documents/Projects/jobfinder/config/sources.yaml)
-4. only add runtime config to [config/companies.yaml](/Users/sai/Documents/Projects/jobfinder/config/companies.yaml) if the source is worth supporting
-5. implement the smallest scraper that works
-6. verify fetch, cache, and normalized output
-
-See:
-
-- [docs/company_source_onboarding.md](/Users/sai/Documents/Projects/jobfinder/docs/company_source_onboarding.md)
-
-## Not Supported
-
-The project currently does not support:
-
-- Playwright-based scraping
-- Selenium/browser automation
-- authenticated job portals
-- sources that only work through fragile client-side interactions
-
-## Next Likely Work
-
-The next likely tasks are:
-
-- add more supported company sources
-- keep refining source tracking in `config/sources.yaml`
-- begin Phase 2 matching once the source set is stable
+- [`plans/masterplan.md`](/Users/sai/Documents/Projects/jobfinder/plans/masterplan.md) is the product blueprint.
+- [`plans/scraper_plan.md`](/Users/sai/Documents/Projects/jobfinder/plans/scraper_plan.md) covers the current scraper-focused execution work.
+- [`docs/company_source_onboarding.md`](/Users/sai/Documents/Projects/jobfinder/docs/company_source_onboarding.md) documents how to evaluate and add new company sources.
