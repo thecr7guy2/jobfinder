@@ -27,7 +27,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
         </Link>
       ))}
       <form action="/api/auth/logout" method="post">
-        <button type="submit">Log out</button>
+        <button type="submit" className="logout-btn">Log out</button>
       </form>
     </div>
   );

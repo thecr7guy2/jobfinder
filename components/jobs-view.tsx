@@ -131,7 +131,7 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
                   <td>
                     <button className="title-button" type="button" onClick={() => setSelectedJobId(job.id)}>
                       <strong>{job.title}</strong>
-                      <span className="subtle">{job.id}</span>
+                      <span className="source-label">{job.source}</span>
                     </button>
                   </td>
                   <td>

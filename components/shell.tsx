@@ -16,10 +16,13 @@ export function Shell({ role, title, subtitle, children }: ShellProps) {
       <div className="frame">
         <header className="header">
           <div className="brand">
-            <h1>JobFinder Dashboard</h1>
-            <p>
-              {title} · {subtitle}
-            </p>
+            <div className="brand-mark">JF</div>
+            <div className="brand-text">
+              <h1>JobFinder</h1>
+              <p>
+                {title} · {subtitle}
+              </p>
+            </div>
           </div>
           <DashboardNav role={role} />
         </header>
