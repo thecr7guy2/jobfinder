@@ -1,7 +1,7 @@
 \documentclass[12pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[margin=1in]{geometry}
+\usepackage[top=0.58in,bottom=0.95in,left=1in,right=1in]{geometry}
 \usepackage[hidelinks]{hyperref}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{graphicx}
@@ -19,13 +19,13 @@
 
 \AddToShipoutPictureBG{%
 \color{headergray}
-\AtPageUpperLeft{\rule[-1.08in]{\paperwidth}{1.08in}}
+\AtPageUpperLeft{\rule[-0.92in]{\paperwidth}{0.92in}}
 }
 
 \begin{center}
 {\fontsize{29}{32}\selectfont\scshape {{FULL_NAME}}}
 
-\vspace{0.11in}
+\vspace{0.07in}
 \small
 \href{mailto:{{EMAIL}}}{\faEnvelope\enspace {{EMAIL}}}\hfill
 \href{https://linkedin.com/in/{{LINKEDIN}}}{\faLinkedinIn\enspace {{LINKEDIN}}}\hfill
@@ -33,21 +33,23 @@
 \faMapMarker\enspace {{LOCATION}}
 \end{center}
 
-\vspace{0.26in}
+\vspace{0.18in}
 
-\noindent{{DATE}}\\
+\begin{flushleft}
+{{DATE}}
+
+\vspace{0.05in}
+
+\textbf{Subject:} {{SUBJECT}}
+
+\vspace{0.11in}
+
+Dear Hiring Committee,
+\end{flushleft}
 
 \vspace{0.08in}
 
-\noindent\textbf{Subject:} {{SUBJECT}}\\
-
-\vspace{0.14in}
-
-\noindent Dear Hiring Committee,\\
-
-\vspace{0.12in}
-
-\noindent{{LETTER_BODY}}
+\noindent {{LETTER_BODY}}
 
 \vspace{0.18in}
 
