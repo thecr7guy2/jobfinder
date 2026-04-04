@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { AccessRole, ApplicationStatus, DashboardJob } from "@/lib/dashboard/types";
 import { APPLICATION_STATUSES } from "@/lib/dashboard/constants";
@@ -19,11 +19,27 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
   const [status, setStatus] = useState("all");
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [localJobs, setLocalJobs] = useState(jobs);
-  const [isPending, startTransition] = useTransition();
+  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     setLocalJobs(jobs);
   }, [jobs]);
+
+  useEffect(() => {
+    if (!feedback) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setFeedback(null);
+    }, 2400);
+
+    return () => window.clearTimeout(timeout);
+  }, [feedback]);
 
   const companies = useMemo(
     () => ["all", ...new Set(localJobs.map((job) => job.companyName))],
@@ -44,36 +60,80 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
   const selectedJob = visibleJobs.find((job) => job.id === selectedJobId) ?? null;
 
   async function updateStatus(jobId: string, nextStatus: ApplicationStatus) {
-    if (role !== "owner") {
+    if (role !== "owner" || pendingJobId === jobId) {
       return;
     }
 
-    startTransition(() => {
-      void (async () => {
-        const response = await fetch("/api/status/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jobId, status: nextStatus }),
-        });
-        if (!response.ok) {
-          return;
-        }
+    const previousJob = localJobs.find((job) => job.id === jobId);
+    if (!previousJob || previousJob.applicationStatus === nextStatus) {
+      return;
+    }
 
-        const payload = (await response.json()) as { record: { status: ApplicationStatus; updated_at: string; updated_by_role: AccessRole } };
-        setLocalJobs((currentJobs) =>
-          currentJobs.map((job) =>
-            job.id === jobId
-              ? {
-                  ...job,
-                  applicationStatus: payload.record.status,
-                  applicationUpdatedAt: payload.record.updated_at,
-                  applicationUpdatedByRole: payload.record.updated_by_role,
-                }
-              : job,
-          ),
-        );
-      })();
-    });
+    setPendingJobId(jobId);
+    setFeedback(null);
+
+    setLocalJobs((currentJobs) =>
+      currentJobs.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              applicationStatus: nextStatus,
+            }
+          : job,
+      ),
+    );
+
+    try {
+      const response = await fetch("/api/status/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId, status: nextStatus }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; record?: { status: ApplicationStatus; updated_at: string; updated_by_role: AccessRole } }
+        | null;
+
+      if (!response.ok || !payload?.record) {
+        throw new Error(payload?.error || "Failed to save status.");
+      }
+
+      setLocalJobs((currentJobs) =>
+        currentJobs.map((job) =>
+          job.id === jobId
+            ? {
+                ...job,
+                applicationStatus: payload.record!.status,
+                applicationUpdatedAt: payload.record!.updated_at,
+                applicationUpdatedByRole: payload.record!.updated_by_role,
+              }
+            : job,
+        ),
+      );
+      setFeedback({
+        tone: "success",
+        message: `Saved ${nextStatus} for ${previousJob.title}.`,
+      });
+    } catch (error) {
+      setLocalJobs((currentJobs) =>
+        currentJobs.map((job) =>
+          job.id === jobId
+            ? {
+                ...job,
+                applicationStatus: previousJob.applicationStatus,
+                applicationUpdatedAt: previousJob.applicationUpdatedAt,
+                applicationUpdatedByRole: previousJob.applicationUpdatedByRole,
+              }
+            : job,
+        ),
+      );
+      setFeedback({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Failed to save status.",
+      });
+    } finally {
+      setPendingJobId(null);
+    }
   }
 
   return (
@@ -82,6 +142,8 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
         <h2>{title}</h2>
         <p>{subtitle}</p>
       </div>
+
+      {feedback ? <div className={`inline-feedback inline-feedback-${feedback.tone}`}>{feedback.message}</div> : null}
 
       <section className="panel">
         <div className="panel-header">
@@ -142,7 +204,7 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
                       <select
                         className="status-select"
                         value={job.applicationStatus}
-                        disabled={isPending}
+                        disabled={pendingJobId === job.id}
                         onChange={(event) => updateStatus(job.id, event.target.value as ApplicationStatus)}
                       >
                         {APPLICATION_STATUSES.map((option) => (
@@ -158,7 +220,13 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
                   <td>{job.companyName}</td>
                   <td>{job.location}</td>
                   <td>{job.alerted ? "Yes" : "No"}</td>
-                  <td>{job.applicationUpdatedAt ? new Date(job.applicationUpdatedAt).toLocaleDateString() : "Not updated"}</td>
+                  <td>
+                    {pendingJobId === job.id
+                      ? "Saving..."
+                      : job.applicationUpdatedAt
+                        ? new Date(job.applicationUpdatedAt).toLocaleDateString()
+                        : "Not updated"}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -199,7 +267,7 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
                   <select
                     className="status-select"
                     value={job.applicationStatus}
-                    disabled={isPending}
+                    disabled={pendingJobId === job.id}
                     onChange={(event) => updateStatus(job.id, event.target.value as ApplicationStatus)}
                   >
                     {APPLICATION_STATUSES.map((option) => (
@@ -213,7 +281,7 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
                 )}
 
                 <button className="secondary-button mobile-detail-button" type="button" onClick={() => setSelectedJobId(job.id)}>
-                  View details
+                  {pendingJobId === job.id ? "Saving..." : "View details"}
                 </button>
               </div>
             </article>

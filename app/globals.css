@@ -302,6 +302,27 @@ button, input, select, textarea {
   color: var(--muted);
 }
 
+.inline-feedback {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.inline-feedback-success {
+  background: rgba(28, 107, 74, 0.08);
+  border-color: rgba(28, 107, 74, 0.16);
+  color: var(--accent-strong);
+}
+
+.inline-feedback-error {
+  background: rgba(148, 47, 47, 0.08);
+  border-color: rgba(148, 47, 47, 0.16);
+  color: var(--danger);
+}
+
 /* ─── Filters ─────────────────────────────────────────────────────── */
 
 .filters {
