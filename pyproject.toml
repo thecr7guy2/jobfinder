@@ -16,4 +16,4 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["scrapers"]
-include = ["fetch_jobs.py", "match_jobs.py"]
+include = ["fetch_jobs.py", "match_jobs.py", "notify.py"]
