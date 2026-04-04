@@ -11,7 +11,7 @@ import type {
   JobRecord,
 } from "@/lib/dashboard/types";
 import { APPLICATION_STATUSES } from "@/lib/dashboard/constants";
-import { updateRepoFile } from "@/lib/dashboard/github";
+import { readRepoJsonFile, updateRepoJsonFile } from "@/lib/dashboard/github";
 
 const ROOT_DIR = process.cwd();
 const JOBS_PATH = path.join(ROOT_DIR, "data", "jobs.json");
@@ -38,6 +38,9 @@ export async function readJobs(): Promise<JobRecord[]> {
 }
 
 export async function readApplications(): Promise<ApplicationsFile> {
+  if (process.env.GH_PAT) {
+    return readRepoJsonFile<ApplicationsFile>("data/applications.json", {});
+  }
   return readJsonFile<ApplicationsFile>(APPLICATIONS_PATH, {});
 }
 
@@ -151,20 +154,8 @@ export function assertValidStatus(status: string): asserts status is Application
   }
 }
 
-async function persistApplications(
-  applications: ApplicationsFile,
-  message: string,
-): Promise<void> {
+async function persistApplications(applications: ApplicationsFile): Promise<void> {
   const serialized = JSON.stringify(applications, null, 2) + "\n";
-
-  if (process.env.GH_PAT) {
-    await updateRepoFile({
-      path: "data/applications.json",
-      content: serialized,
-      message,
-    });
-    return;
-  }
 
   await fs.writeFile(APPLICATIONS_PATH, serialized, "utf-8");
 }
@@ -174,7 +165,7 @@ export async function updateApplicationStatus(params: {
   status: ApplicationStatus;
   role: AccessRole;
 }): Promise<ApplicationRecord> {
-  const [jobs, applications] = await Promise.all([readJobs(), readApplications()]);
+  const jobs = await readJobs();
   const jobExists = jobs.some((job) => job.id === params.jobId);
   if (!jobExists) {
     throw new Error(`Unknown job id: ${params.jobId}`);
@@ -186,7 +177,22 @@ export async function updateApplicationStatus(params: {
     updated_at: utcnowIso(),
     updated_by_role: params.role,
   };
+
+  if (process.env.GH_PAT) {
+    await updateRepoJsonFile<ApplicationsFile>({
+      path: "data/applications.json",
+      fallback: {},
+      message: `Update application status for ${params.jobId} to ${params.status}`,
+      apply: (current) => ({
+        ...current,
+        [params.jobId]: record,
+      }),
+    });
+    return record;
+  }
+
+  const applications = await readApplications();
   applications[params.jobId] = record;
-  await persistApplications(applications, `Update application status for ${params.jobId} to ${params.status}`);
+  await persistApplications(applications);
   return record;
 }
