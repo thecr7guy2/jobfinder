@@ -7,7 +7,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "sync:resume": "node scripts/sync-resume-to-postgres.mjs"
+    "sync:resume": "node scripts/sync-resume-to-postgres.mjs",
+    "compile:cover-letter-pdf": "node scripts/compile-cover-letter-pdf.mjs"
   },
   "dependencies": {
     "next": "^15.3.0",

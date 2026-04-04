@@ -1,0 +1,50 @@
+name: Cover Letter PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: Job ID whose stored cover letter should be compiled to PDF
+        required: true
+        type: string
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Tectonic
+        uses: wtfjoke/setup-tectonic@v4
+
+      - name: Compile cover letter PDF
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+        run: |
+          node scripts/compile-cover-letter-pdf.mjs \
+            --job-id "${{ inputs.job_id }}" \
+            --out-dir artifacts/cover-letters
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cover-letter-${{ inputs.job_id }}
+          path: artifacts/cover-letters/*.pdf
+          if-no-files-found: error
