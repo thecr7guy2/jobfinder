@@ -1,4 +1,4 @@
-# JobFinder Scraper — Plan
+# JobFinder Scraper — Implemented Snapshot
 
 ## Goal
 A single script (`fetch_jobs.py`) that reads a list of target companies, scrapes their job listings using the right strategy per company, caches results to avoid redundant API calls, normalizes everything to a common schema, and writes to a single `data/jobs.json` store.
@@ -10,17 +10,22 @@ A single script (`fetch_jobs.py`) that reads a list of target companies, scrapes
 ```
 jobfinder/
 ├── config/
-│   └── companies.yaml        # One entry per company: name, url, scraper type, filters
+│   ├── companies.yaml        # Runtime scraper config for active sources
+│   └── sources.yaml          # Source registry and investigation notes
 ├── scrapers/
 │   ├── base.py               # Abstract base class all scrapers inherit from
 │   ├── icims.py              # Booking.com (iCIMS JSON API)
 │   ├── html.py               # TNO (BeautifulSoup static HTML)
-│   └── playwright.py         # ASML and others (JS-rendered, built later)
+│   ├── greenhouse.py         # Adyen (Greenhouse API)
+│   ├── abn_amro.py           # ABN AMRO vacancy API
+│   ├── ing.py                # ING search API + detail pages
+│   ├── albert_heijn.py       # Albert Heijn vacancy API
+│   └── __init__.py           # Scraper registry
 ├── data/
 │   ├── cache/                # Raw per-company cache files (one JSON per company)
 │   └── jobs.json             # Final normalized + merged job store
 ├── fetch_jobs.py             # Single entry point — run this to get all jobs
-└── requirements.txt
+└── docs/company_source_onboarding.md
 ```
 
 ---
@@ -75,39 +80,11 @@ Force-refresh with `--force` flag on `fetch_jobs.py`.
 
 ---
 
-## `companies.yaml` Shape
+## Source Registry vs Runtime Config
 
-```yaml
-companies:
-  - id: booking_com
-    name: Booking.com
-    type: icims
-    api_url: https://jobs.booking.com/api/jobs
-    filters:
-      location: Netherlands
-      categories: "Data Science & Analytics|ML Engineering|ML Science"
-    ttl_hours: 6
-
-  - id: tno
-    name: TNO
-    type: html
-    url: https://www.tno.nl/en/careers/vacancies/
-    filters:
-      "Zoe_Selected_facet:Careers Vakgebied": "759"
-    selectors:
-      job_card: "div.ipx-pt-vacancy"
-      title: "h3"
-      link: "a"
-      location: "dd.extra-werklocatie"
-    ttl_hours: 6
-
-  # ASML — needs Playwright (JS-rendered), build later
-  # - id: asml
-  #   name: ASML
-  #   type: playwright
-  #   url: https://www.asml.com/en/careers/find-your-job
-  #   ttl_hours: 6
-```
+- `config/sources.yaml` records every investigated source, including active, skipped, and blocked sites.
+- `config/companies.yaml` contains only active runtime scraper config used by `fetch_jobs.py`.
+- `docs/company_source_onboarding.md` defines how a new source moves from investigation into runtime config.
 
 ---
 
@@ -115,21 +92,24 @@ companies:
 
 | Type | Companies | Method | Status |
 |---|---|---|---|
-| `icims` | Booking.com | Direct JSON API (`/api/jobs`) | V1 |
-| `html` | TNO | `requests` + BeautifulSoup | V1 |
-| `playwright` | ASML | Headless browser | Later |
+| `icims` | Booking.com | Direct JSON API (`/api/jobs`) | Implemented |
+| `html` | TNO | `requests` + BeautifulSoup | Implemented |
+| `greenhouse` | Adyen | Greenhouse Boards API | Implemented |
+| `abn_amro` | ABN AMRO | Vacancy API + detail page metadata | Implemented |
+| `ing` | ING | Search endpoint + detail pages | Implemented |
+| `albert_heijn` | Albert Heijn | Vacancy API + detail page metadata | Implemented |
+| `none` | ASML, Uber | Browser-only or unsupported | Skipped |
 
 ---
 
-## Build Order
+## Implemented Work
 
-- [ ] `requirements.txt` and project skeleton
-- [ ] `scrapers/base.py` — abstract base class with `fetch()` and `normalize()` interface
-- [ ] `scrapers/icims.py` — Booking.com API scraper
-- [ ] `scrapers/html.py` — TNO BeautifulSoup scraper
-- [ ] `fetch_jobs.py` — orchestrator: cache logic + merge + dedup
-- [ ] `config/companies.yaml` — wire up both companies
-- [ ] End-to-end test: run once (fetches fresh), run again (hits cache)
+- `scrapers/base.py` provides shared request, normalization, and timestamp helpers.
+- `fetch_jobs.py` supports cache-aware full runs and `--company <id>` scoped runs.
+- Raw responses are cached in `data/cache/{company_id}.json`.
+- Normalized records are merged into `data/jobs.json` with stable IDs, `first_seen`, and `last_seen`.
+- Active source configuration lives in `config/companies.yaml`.
+- Investigated source status and notes live in `config/sources.yaml`.
 
 ---
 
@@ -139,12 +119,17 @@ companies:
 |---|---|---|---|
 | Booking.com | jobs.booking.com/api/jobs | icims | Clean JSON API, filter by category + NL location |
 | TNO | tno.nl/en/careers/vacancies/ | html | Server-rendered, `ipx-pt-vacancy` div cards |
-| ASML | asml.com/en/careers/find-your-job | playwright | Next.js SPA, no public API found |
+| Adyen | boards-api.greenhouse.io/v1/boards/adyen/jobs | greenhouse | Public Boards API with content support |
+| ABN AMRO | werkenbijabnamro.nl/en/api/vacancy/ | abn_amro | Vacancy API plus JSON-LD detail pages |
+| ING | careers.ing.com/en/search-jobs/resultspost | ing | Search endpoint plus server-rendered detail pages |
+| Albert Heijn | werk.ah.nl/en/api/vacancy/ | albert_heijn | Vacancy API with XMLHttpRequest header |
+| ASML | asml.com/en/careers/find-your-job | skipped | Browser-only under current no-Playwright rule |
+| Uber | uber.com/nl/en/careers/list/ | skipped | No confirmed non-browser search endpoint |
 
 ---
 
-## Open Questions
+## Resolved Decisions
 
-- What other companies should be added?
-- Should `fetch_jobs.py` also accept a `--company` flag to fetch just one company?
-- TTL: 6 hours default — override per company in YAML?
+- `fetch_jobs.py` supports `--company <id>` for scoped fetches.
+- TTL remains configurable per company in `config/companies.yaml`.
+- Playwright is intentionally not part of the implemented scraper stack.
