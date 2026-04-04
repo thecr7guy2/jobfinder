@@ -9,6 +9,9 @@ import type { CoverLetterSections, GeneratedCoverLetter } from "@/lib/cover-lett
 
 const ROOT_DIR = process.cwd();
 const JOBS_PATH = path.join(ROOT_DIR, "data", "jobs.json");
+const MAX_TOTAL_WORDS = 280;
+const MAX_PARAGRAPH_WORDS = 90;
+const MAX_PARAGRAPH_SENTENCES = 3;
 
 function isoDateStamp(): string {
   return new Date().toISOString().slice(0, 10);
@@ -45,6 +48,78 @@ function slugify(value: string): string {
     .slice(0, 80);
 }
 
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function splitSentences(value: string): string[] {
+  return value
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+function trimWords(value: string, maxWords: number): string {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) {
+    return value.trim();
+  }
+
+  return `${words.slice(0, maxWords).join(" ").replace(/[,:;\-]+$/g, "")}.`;
+}
+
+function tightenParagraph(value: string, maxWords: number): string {
+  const sentences = splitSentences(value).slice(0, MAX_PARAGRAPH_SENTENCES);
+  let paragraph = sentences.join(" ").trim();
+  if (!paragraph) {
+    paragraph = value.trim();
+  }
+
+  if (countWords(paragraph) > maxWords) {
+    paragraph = trimWords(paragraph, maxWords);
+  }
+
+  return paragraph;
+}
+
+export function normalizeCoverLetterSections(sections: CoverLetterSections): CoverLetterSections {
+  const normalized = {
+    opening_paragraph: tightenParagraph(sections.opening_paragraph, MAX_PARAGRAPH_WORDS),
+    experience_paragraph: tightenParagraph(sections.experience_paragraph, MAX_PARAGRAPH_WORDS),
+    closing_paragraph: tightenParagraph(sections.closing_paragraph, 60),
+  };
+
+  let totalWords =
+    countWords(normalized.opening_paragraph) +
+    countWords(normalized.experience_paragraph) +
+    countWords(normalized.closing_paragraph);
+
+  if (totalWords <= MAX_TOTAL_WORDS) {
+    return normalized;
+  }
+
+  const overflow = totalWords - MAX_TOTAL_WORDS;
+  normalized.experience_paragraph = trimWords(
+    normalized.experience_paragraph,
+    Math.max(45, countWords(normalized.experience_paragraph) - overflow),
+  );
+
+  totalWords =
+    countWords(normalized.opening_paragraph) +
+    countWords(normalized.experience_paragraph) +
+    countWords(normalized.closing_paragraph);
+
+  if (totalWords > MAX_TOTAL_WORDS) {
+    normalized.opening_paragraph = trimWords(
+      normalized.opening_paragraph,
+      Math.max(35, MAX_TOTAL_WORDS - countWords(normalized.experience_paragraph) - countWords(normalized.closing_paragraph)),
+    );
+  }
+
+  return normalized;
+}
+
 function validateSections(payload: unknown): CoverLetterSections {
   if (!payload || typeof payload !== "object") {
     throw new Error("Cover letter model returned an invalid payload.");
@@ -59,11 +134,11 @@ function validateSections(payload: unknown): CoverLetterSections {
     throw new Error("Cover letter model response is missing one or more paragraphs.");
   }
 
-  return {
+  return normalizeCoverLetterSections({
     opening_paragraph: opening,
     experience_paragraph: experience,
     closing_paragraph: closing,
-  };
+  });
 }
 
 export async function readJobsForCoverLetters(): Promise<JobRecord[]> {

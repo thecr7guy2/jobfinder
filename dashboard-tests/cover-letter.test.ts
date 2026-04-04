@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { escapeLatex, paragraphsToLatex } from "@/lib/cover-letter/latex";
-import { cleanRoleTitle, coverLetterSubject } from "@/lib/cover-letter/generate";
+import { cleanRoleTitle, coverLetterSubject, normalizeCoverLetterSections } from "@/lib/cover-letter/generate";
 import { injectTemplatePlaceholders } from "@/lib/cover-letter/template";
 
 describe("cover letter latex helpers", () => {
@@ -35,5 +35,29 @@ describe("cover letter latex helpers", () => {
     expect(coverLetterSubject(cleanedTitle)).toBe(
       "Application for Medior Machine Learning Engineer",
     );
+  });
+
+  it("trims generated sections to a one-page friendly budget", () => {
+    const repeatedSentence =
+      "I built production machine learning systems for large-scale data processing and deployment.";
+    const longParagraph = Array.from({ length: 8 }, () => repeatedSentence).join(" ");
+
+    const normalized = normalizeCoverLetterSections({
+      opening_paragraph: longParagraph,
+      experience_paragraph: longParagraph,
+      closing_paragraph: longParagraph,
+    });
+
+    const totalWords = [
+      normalized.opening_paragraph,
+      normalized.experience_paragraph,
+      normalized.closing_paragraph,
+    ]
+      .join(" ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+
+    expect(totalWords).toBeLessThanOrEqual(280);
   });
 });

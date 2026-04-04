@@ -22,7 +22,9 @@ Output format:
   - closing_paragraph
 
 Content constraints:
-- Each paragraph should be 2 to 4 sentences.
-- Keep the full letter body under roughly 320 words.
+- Each paragraph should be 1 to 3 sentences.
+- Keep the full letter body under 280 words.
+- Prefer 220 to 260 words total.
+- Make the closing paragraph brief.
 - Avoid bullet points.
 - Avoid placeholders like [Company].
