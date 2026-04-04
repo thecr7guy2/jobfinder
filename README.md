@@ -14,7 +14,7 @@ The current system runs across GitHub, Vercel, and Postgres: GitHub Actions for 
 
 ## Current Status
 
-The repository currently implements Phases 1 through 6 in practical terms: job scraping, DeepSeek-based matching, Telegram alerting, a protected dashboard, Postgres-backed application and cover-letter storage, manual PDF compilation via GitHub Actions, and scheduled scrape/match/notify automation.
+The repository currently implements Phases 1 through 6 in practical terms: job scraping, DeepSeek-based matching, Telegram alerting, a protected dashboard, Postgres-backed application and cover-letter storage, dashboard-triggered PDF compilation via GitHub Actions, and scheduled scrape/match/notify automation.
 
 Active sources today:
 - Booking.com
@@ -54,7 +54,8 @@ Telegram alert  (score >= threshold)
 Vercel dashboard
      |
      |-- Review job -> Apply / Skip
-     |-- Generate cover letter -> stored in Postgres + manual PDF workflow
+     |-- Generate cover letter -> stored in Postgres
+     |-- Compile/download PDF -> Cover Letters page + GitHub Actions + Postgres
      `-- Track status -> Applied / Interview / Offer / Rejected
 ```
 
@@ -143,9 +144,13 @@ Current deliverables:
 - `data/cover_letter_template.tex`
 - `config/cover_letter_prompt.md`
 - `app/api/cover-letter/generate`
+- `app/api/cover-letter/compile`
+- `app/api/cover-letter/pdf`
 - on-demand generation from the dashboard
 - cover letter storage in Postgres
-- manual PDF compilation with Tectonic
+- Cover Letters page for stored drafts and PDFs
+- dashboard-triggered PDF compilation with Tectonic
+- direct PDF download from the dashboard after compilation
 
 ### Phase 6 - GitHub Actions Automation
 
@@ -153,7 +158,7 @@ Goal: run the full pipeline without manual intervention.
 
 Current workflows:
 - `scrape.yml`: fetch, match, notify
-- `cover_letter_pdf.yml`: compile stored cover letters to PDF
+- `cover_letter_pdf.yml`: compile stored cover letters to PDF and persist the result back to Postgres
 
 Expected secrets:
 - `TELEGRAM_BOT_TOKEN`
@@ -188,6 +193,7 @@ jobfinder/
 │   ├── api/
 │   │   └── cover-letter/
 │   ├── dashboard/
+│   ├── cover-letters/
 │   ├── inbox/
 │   ├── login/
 │   └── tracker/

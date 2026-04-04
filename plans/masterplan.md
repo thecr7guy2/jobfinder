@@ -4,7 +4,7 @@
 
 A personal job discovery and application tracking system. It continuously monitors career pages of target companies, scores open roles against a resume using a cheap LLM, sends Telegram alerts for strong matches, and provides a protected Vercel dashboard to review jobs, track applications, and generate cover letters.
 
-The current implementation runs across GitHub and Vercel infrastructure: GitHub for the repo and planned automation, Vercel for the dashboard frontend, and Postgres for dashboard-owned application state.
+The current implementation runs across GitHub and Vercel infrastructure: GitHub for the repo and automation, Vercel for the dashboard frontend, and Postgres for dashboard-owned application state and generated documents.
 
 ---
 
@@ -38,7 +38,7 @@ Vercel dashboard
      │
      ├── Generate cover letter  →  store `.tex` in Postgres
      │
-     ├── Compile cover letter PDF  →  GitHub Actions + Tectonic artifact
+     ├── Compile cover letter PDF  →  GitHub Actions + Tectonic + Postgres PDF
      │
      └── Track status  →  Applied / Phone Screen / Interview / Offer / Rejected
 ```
@@ -131,12 +131,14 @@ Generate a tailored cover letter when a job is approved.
 - `config/cover_letter_prompt.md` — generation instructions
 - dashboard-triggered cover letter generation
 - generated `.tex` stored in Postgres
-- manual PDF compilation with GitHub Actions + Tectonic
+- dashboard-accessible Cover Letters page
+- dashboard-triggered PDF compilation with GitHub Actions + Tectonic
+- compiled PDF stored in Postgres and downloadable from the dashboard
 - Prompt explicitly instructs: use only facts from resume, do not invent experience
 
 **Trigger:** Owner action on dashboard → server-side generation and Postgres save.
 
-**Done when:** Owner generates a cover letter in the dashboard, it is stored in Postgres, and a PDF can be compiled through the workflow.
+**Done when:** Owner generates a cover letter in the dashboard, it is stored in Postgres, and a compiled PDF becomes downloadable from the dashboard.
 
 ---
 
@@ -147,7 +149,7 @@ Wire everything together so it runs on a schedule without manual intervention.
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `scrape.yml` | Schedule (every 8h) + manual | fetch_jobs.py + match_jobs.py + notify.py + commit updated repo state |
-| `cover_letter_pdf.yml` | workflow_dispatch (job_id param) | read stored cover letter from Postgres, compile PDF with Tectonic, upload artifact |
+| `cover_letter_pdf.yml` | workflow_dispatch (job_id param) | read stored cover letter from Postgres, compile PDF with Tectonic, persist PDF back to Postgres |
 | `deploy.yml` | Vercel-managed | build and deploy dashboard from GitHub integration |
 
 **Secrets needed:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DEEPSEEK_API_KEY`, `VIEWER_ACCESS_CODE`, `OWNER_ACCESS_CODE`, and `DATABASE_URL` or `POSTGRES_URL` (for dashboard write-back)
@@ -185,7 +187,7 @@ Wire everything together so it runs on a schedule without manual intervention.
 | `data/applications.json` | Local fallback only when dashboard Postgres is not configured |
 | `data/cache/{company_id}.json` | Raw cached scrape per company |
 | `profile_documents.resume_markdown` | Resume stored in Postgres for dashboard and automation |
-| `cover_letters` table | Generated cover letters stored in Postgres |
+| `cover_letters` table | Generated cover letters, compile state, and compiled PDFs stored in Postgres |
 
 ---
 
