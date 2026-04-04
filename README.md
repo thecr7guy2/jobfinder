@@ -14,7 +14,7 @@ Everything is designed to run on GitHub infrastructure: Actions for scheduling, 
 
 ## Current Status
 
-The repository currently implements Phase 1 only: job scraping, normalization, and cache-backed refresh.
+The repository currently implements Phases 1, 2, and 3: job scraping, normalization, cache-backed refresh, DeepSeek-based job matching, and Telegram alerting.
 
 Active sources today:
 - Booking.com
@@ -22,6 +22,7 @@ Active sources today:
 - Adyen
 - ABN AMRO
 - ING
+- Albert Heijn
 
 Current implementation rules:
 - prefer direct APIs when available
@@ -74,6 +75,7 @@ Main deliverables in this repo:
 - [`scrapers/greenhouse.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/greenhouse.py)
 - [`scrapers/abn_amro.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/abn_amro.py)
 - [`scrapers/ing.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/ing.py)
+- [`scrapers/albert_heijn.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/albert_heijn.py)
 - [`fetch_jobs.py`](/Users/sai/Documents/Projects/jobfinder/fetch_jobs.py)
 - [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json)
 - `data/cache/`
@@ -89,9 +91,9 @@ Goal: score each new job against a plain-text resume using a cheap-first staged 
 Status: implemented.
 
 Main deliverables in this repo:
-- `config/matching.yaml`
-- `data/resume.md`
-- `match_jobs.py`
+- [`config/matching.yaml`](/Users/sai/Documents/Projects/jobfinder/config/matching.yaml)
+- [`data/resume.md`](/Users/sai/Documents/Projects/jobfinder/data/resume.md)
+- [`match_jobs.py`](/Users/sai/Documents/Projects/jobfinder/match_jobs.py)
 - match data written back into `data/jobs.json`
 
 Current stages:
@@ -104,10 +106,17 @@ Current stages:
 
 Goal: notify when a new job crosses the score threshold.
 
-Planned deliverables:
-- `notify.py`
-- deduplicated alerts recorded in `jobs.json`
-- scraper failure warnings when a source unexpectedly goes empty
+Status: implemented.
+
+Main deliverables in this repo:
+- [`notify.py`](/Users/sai/Documents/Projects/jobfinder/notify.py)
+- alert metadata written back into `data/jobs.json`
+- [`data/source_health.json`](/Users/sai/Documents/Projects/jobfinder/data/source_health.json) created on first real notifier run
+
+Current behavior:
+- sends one Telegram message per newly qualified job
+- deduplicates by top-level alert metadata on each job
+- warns when a source returns zero jobs for 2 consecutive runs
 
 ### Phase 4 - GitHub Pages Dashboard
 
@@ -154,23 +163,33 @@ Expected secrets:
 jobfinder/
 ├── config/
 │   ├── companies.yaml
+│   ├── matching.yaml
 │   └── sources.yaml
 ├── data/
 │   ├── cache/
-│   └── jobs.json
+│   ├── jobs.json
+│   └── resume.md
 ├── docs/
 │   └── company_source_onboarding.md
 ├── plans/
 │   ├── masterplan.md
+│   ├── phase2_matching_plan.md
 │   └── scraper_plan.md
 ├── scrapers/
 │   ├── abn_amro.py
+│   ├── albert_heijn.py
+│   ├── __init__.py
 │   ├── base.py
 │   ├── greenhouse.py
 │   ├── html.py
+│   ├── ing.py
 │   └── icims.py
 ├── fetch_jobs.py
+├── match_jobs.py
+├── notify.py
 ├── pyproject.toml
+├── tests/
+│   └── test_match_jobs.py
 └── uv.lock
 ```
 
@@ -204,6 +223,7 @@ uv run python fetch_jobs.py --company tno
 uv run python fetch_jobs.py --company adyen
 uv run python fetch_jobs.py --company abn_amro
 uv run python fetch_jobs.py --company ing
+uv run python fetch_jobs.py --company albert_heijn
 ```
 
 Configure matching preferences in `config/matching.yaml`.
@@ -219,8 +239,8 @@ TELEGRAM_CHAT_ID=your_chat_id_here
 GH_PAT=your_github_pat_here
 ```
 
-Right now only `DEEPSEEK_API_KEY` is used by the implemented code. The Telegram and GitHub values
-are placeholders for upcoming phases.
+`DEEPSEEK_API_KEY` is used by matching. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
+are used by `notify.py`. `GH_PAT` is still for a later phase.
 
 If you prefer exporting the current required key directly:
 
@@ -247,9 +267,29 @@ uv run python match_jobs.py --company booking_com
 uv run python match_jobs.py --job-id abn_amro::9162
 ```
 
+Send Telegram alerts for newly qualified jobs:
+
+```bash
+uv run python notify.py
+```
+
+Preview alerts without sending or writing:
+
+```bash
+uv run python notify.py --dry-run
+```
+
+Scope job alerts or check only source failures:
+
+```bash
+uv run python notify.py --company booking_com
+uv run python notify.py --failures-only
+uv run python notify.py --dry-run --resend
+```
+
 ## Data Model
 
-Current normalized jobs are stored in [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json).
+Current normalized and matched jobs are stored in [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json).
 
 Each record includes core fields such as:
 - `id`
@@ -265,7 +305,7 @@ Each record includes core fields such as:
 - `last_seen`
 - `source`
 
-The planned end-state schema also includes match metadata, alert metadata, and application lifecycle state.
+The current schema includes match metadata from Phase 2 and alert metadata from Phase 3. The planned end-state schema will add application lifecycle state.
 
 ## Tech Choices
 
@@ -274,10 +314,10 @@ Current stack:
 - `requests`
 - `beautifulsoup4`
 - `PyYAML`
+- DeepSeek API for scoring
 - JSON files in-repo for state
 
 Planned additions:
-- LLM-based matching
 - Telegram notifications
 - GitHub Pages frontend
 - GitHub Actions automation
@@ -285,5 +325,7 @@ Planned additions:
 ## Notes
 
 - [`plans/masterplan.md`](/Users/sai/Documents/Projects/jobfinder/plans/masterplan.md) is the product blueprint.
-- [`plans/scraper_plan.md`](/Users/sai/Documents/Projects/jobfinder/plans/scraper_plan.md) covers the current scraper-focused execution work.
+- [`plans/scraper_plan.md`](/Users/sai/Documents/Projects/jobfinder/plans/scraper_plan.md) documents the completed Phase 1 scraper implementation.
+- [`plans/phase2_matching_plan.md`](/Users/sai/Documents/Projects/jobfinder/plans/phase2_matching_plan.md) documents the implemented Phase 2 matching pipeline.
+- [`config/sources.yaml`](/Users/sai/Documents/Projects/jobfinder/config/sources.yaml) is the source registry and investigation log.
 - [`docs/company_source_onboarding.md`](/Users/sai/Documents/Projects/jobfinder/docs/company_source_onboarding.md) documents how to evaluate and add new company sources.
