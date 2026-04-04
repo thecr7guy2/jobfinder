@@ -48,6 +48,18 @@ function effectiveStatus(jobId: string, applications: ApplicationsFile): Applica
   return applications[jobId] ?? null;
 }
 
+function defaultApplicationStatus(job: JobRecord): ApplicationStatus {
+  const matchStatus = job.match?.status ?? null;
+  const score = job.match?.llm_score ?? null;
+  const threshold = job.match?.llm_score_threshold ?? 70;
+
+  if (matchStatus === "scored" && score !== null && score >= threshold) {
+    return "new";
+  }
+
+  return "skipped";
+}
+
 function mapDashboardJob(job: JobRecord, applications: ApplicationsFile): DashboardJob {
   const application = effectiveStatus(job.id, applications);
   return {
@@ -72,7 +84,7 @@ function mapDashboardJob(job: JobRecord, applications: ApplicationsFile): Dashbo
     keywordHits: job.match?.keyword_hits ?? [],
     titleHits: job.match?.title_hits ?? [],
     locationMatch: job.match?.location_match ?? null,
-    applicationStatus: application?.status ?? "new",
+    applicationStatus: application?.status ?? defaultApplicationStatus(job),
     applicationUpdatedAt: application?.updated_at ?? null,
     applicationUpdatedByRole: application?.updated_by_role ?? null,
   };

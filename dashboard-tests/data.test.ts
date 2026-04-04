@@ -57,6 +57,30 @@ describe("dashboard data derivation", () => {
         scored_at: "2026-04-04T10:01:00Z",
       },
     },
+    {
+      id: "job-3",
+      company_id: "abn_amro",
+      company_name: "ABN AMRO",
+      title: "Junior Data Scientist",
+      url: "https://example.com/3",
+      location: "Amsterdam, Netherlands",
+      categories: ["Data"],
+      description: "Lower-score role",
+      posted_date: "2026-04-04",
+      first_seen: "2026-04-04T10:00:00Z",
+      last_seen: "2026-04-04T10:00:00Z",
+      source: "abn_amro",
+      match: {
+        status: "scored",
+        llm_score: 62,
+        llm_rationale: "Partial fit",
+        llm_score_threshold: 70,
+        keyword_hits: ["python"],
+        title_hits: ["Data Scientist"],
+        location_match: "any",
+        scored_at: "2026-04-04T10:01:00Z",
+      },
+    },
   ];
 
   it("builds inbox from unreviewed scored jobs over threshold", () => {
@@ -79,6 +103,14 @@ describe("dashboard data derivation", () => {
     expect(viewModel.trackerJobs.find((job) => job.id === "job-1")?.applicationStatus).toBe("applied");
   });
 
+  it("defaults irrelevant jobs to skipped instead of new", () => {
+    const viewModel = deriveDashboardViewModel(jobs, {});
+
+    expect(viewModel.trackerJobs.find((job) => job.id === "job-2")?.applicationStatus).toBe("skipped");
+    expect(viewModel.trackerJobs.find((job) => job.id === "job-3")?.applicationStatus).toBe("skipped");
+    expect(viewModel.trackerJobs.find((job) => job.id === "job-1")?.applicationStatus).toBe("new");
+  });
+
   it("builds dashboard metrics from merged job state", () => {
     const applications: ApplicationsFile = {
       "job-1": {
@@ -91,20 +123,22 @@ describe("dashboard data derivation", () => {
 
     const viewModel = deriveDashboardViewModel(jobs, applications);
 
-    expect(viewModel.metrics.totalJobs).toBe(2);
-    expect(viewModel.metrics.scoredJobs).toBe(1);
+    expect(viewModel.metrics.totalJobs).toBe(3);
+    expect(viewModel.metrics.scoredJobs).toBe(2);
     expect(viewModel.metrics.inboxJobs).toBe(0);
     expect(viewModel.metrics.alertedJobs).toBe(1);
     expect(viewModel.metrics.statusCounts.find((entry) => entry.status === "interview")?.count).toBe(1);
-    expect(viewModel.metrics.statusCounts.find((entry) => entry.status === "new")?.count).toBe(1);
+    expect(viewModel.metrics.statusCounts.find((entry) => entry.status === "new")?.count).toBe(0);
+    expect(viewModel.metrics.statusCounts.find((entry) => entry.status === "skipped")?.count).toBe(2);
     expect(viewModel.metrics.companyCounts).toEqual([
       { companyName: "Booking.com", count: 1 },
       { companyName: "ING", count: 1 },
+      { companyName: "ABN AMRO", count: 1 },
     ]);
     expect(viewModel.metrics.scoreBuckets).toEqual([
       { label: "80+", count: 1 },
       { label: "70-79", count: 0 },
-      { label: "60-69", count: 0 },
+      { label: "60-69", count: 1 },
       { label: "<60", count: 0 },
     ]);
   });
