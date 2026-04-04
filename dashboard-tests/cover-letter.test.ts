@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { escapeLatex, paragraphsToLatex } from "@/lib/cover-letter/latex";
+import { cleanRoleTitle, coverLetterSubject } from "@/lib/cover-letter/generate";
 import { injectTemplatePlaceholders } from "@/lib/cover-letter/template";
 
 describe("cover letter latex helpers", () => {
@@ -22,5 +23,17 @@ describe("cover letter latex helpers", () => {
         ROLE_TITLE: "Senior ML Engineer",
       }),
     ).toBe("Dear Booking.com for Senior ML Engineer");
+  });
+
+  it("sanitizes noisy scraped titles for the cover letter subject", () => {
+    const rawTitle =
+      "Medior Machine Learning Engineer Digital((Python, MLOps, Docker, Kubernetes)";
+
+    const cleanedTitle = cleanRoleTitle(rawTitle);
+
+    expect(cleanedTitle).toBe("Medior Machine Learning Engineer");
+    expect(coverLetterSubject(cleanedTitle)).toBe(
+      "Application for Medior Machine Learning Engineer",
+    );
   });
 });

@@ -22,6 +22,21 @@ function displayDate(): string {
   }).format(new Date());
 }
 
+export function cleanRoleTitle(rawTitle: string): string {
+  return rawTitle
+    .replace(/\s+[A-Za-z][A-Za-z0-9/+&-]*\s*\(\(+.*$/g, "")
+    .replace(/\(\(+.*$/g, "")
+    .replace(/\s+\(([^)]*(python|mlops|docker|kubernetes|spark|tensorflow|pytorch|sql)[^)]*)\)\s*$/i, "")
+    .replace(/\s*[-|:]\s*(python|mlops|docker|kubernetes|spark|tensorflow|pytorch|sql).*/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.,;:]+$/g, "");
+}
+
+export function coverLetterSubject(roleTitle: string): string {
+  return `Application for ${roleTitle}`;
+}
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -126,6 +141,7 @@ export async function generateCoverLetter(job: JobRecord): Promise<GeneratedCove
     readCoverLetterTemplate(),
     generateCoverLetterSections(job),
   ]);
+  const roleTitle = cleanRoleTitle(job.title) || job.title;
 
   const letterBody = paragraphsToLatex([
     sections.opening_paragraph,
@@ -143,8 +159,8 @@ export async function generateCoverLetter(job: JobRecord): Promise<GeneratedCove
     TITLE: escapeLatex("Applicant"),
     CLOSER: escapeLatex("Kind Regards"),
     COMPANY_NAME: escapeLatex(job.company_name),
-    ROLE_TITLE: escapeLatex(job.title),
-    SUBJECT: escapeLatex(`Application for the position of ${job.title}.`),
+    ROLE_TITLE: escapeLatex(roleTitle),
+    SUBJECT: escapeLatex(coverLetterSubject(roleTitle)),
     LETTER_BODY: letterBody,
   });
 
@@ -155,7 +171,7 @@ export async function generateCoverLetter(job: JobRecord): Promise<GeneratedCove
   ].join("\n\n");
 
   return {
-    filename: `${slugify(job.company_name)}-${slugify(job.title)}-${isoDateStamp()}.tex`,
+    filename: `${slugify(job.company_name)}-${slugify(roleTitle)}-${isoDateStamp()}.tex`,
     tex,
     previewText,
   };

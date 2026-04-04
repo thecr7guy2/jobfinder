@@ -464,6 +464,7 @@ tbody tr:hover {
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 16px;
   margin-bottom: 16px;
+  align-items: start;
 }
 
 .detail-grid {
