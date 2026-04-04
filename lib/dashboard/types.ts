@@ -103,4 +103,6 @@ export type StoredCoverLetter = {
   updatedAt: string;
   pdfReady: boolean;
   pdfUpdatedAt: string | null;
+  compileStatus: "idle" | "running" | "ready" | "failed";
+  compileError: string | null;
 };

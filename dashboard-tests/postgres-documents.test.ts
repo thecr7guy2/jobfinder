@@ -22,6 +22,8 @@ describe("postgres document storage", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           document_key: "resume_markdown",
@@ -43,16 +45,20 @@ describe("postgres document storage", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
     const { upsertProfileDocument } = await import("@/lib/dashboard/postgres");
 
     await expect(upsertProfileDocument("resume_markdown", "# Resume")).resolves.toBeUndefined();
-    expect(sqlTag).toHaveBeenCalledTimes(7);
+    expect(sqlTag).toHaveBeenCalledTimes(9);
   });
 
   it("reads a generated cover letter from postgres", async () => {
     sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -83,11 +89,15 @@ describe("postgres document storage", () => {
       pdf_filename: "example-letter.pdf",
       pdf_data: new Uint8Array([1, 2, 3]),
       pdf_updated_at: "2026-04-04T13:00:00Z",
+      compile_status: "idle",
+      compile_error: null,
     });
   });
 
   it("reads all generated cover letters from postgres", async () => {
     sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -104,6 +114,8 @@ describe("postgres document storage", () => {
           pdf_filename: "example-letter.pdf",
           pdf_data: new Uint8Array([1, 2, 3]),
           pdf_updated_at: "2026-04-04T13:00:00Z",
+          compile_status: "ready",
+          compile_error: null,
         },
       ]);
 
@@ -119,12 +131,16 @@ describe("postgres document storage", () => {
         pdf_filename: "example-letter.pdf",
         pdf_data: new Uint8Array([1, 2, 3]),
         pdf_updated_at: "2026-04-04T13:00:00Z",
+        compile_status: "ready",
+        compile_error: null,
       },
     ]);
   });
 
   it("upserts a generated cover letter into postgres", async () => {
     sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -141,6 +157,8 @@ describe("postgres document storage", () => {
           pdf_filename: null,
           pdf_data: null,
           pdf_updated_at: null,
+          compile_status: "idle",
+          compile_error: null,
         },
       ]);
 
@@ -157,12 +175,16 @@ describe("postgres document storage", () => {
       pdf_filename: null,
       pdf_data: null,
       pdf_updated_at: null,
+      compile_status: "idle",
+      compile_error: null,
     });
-    expect(sqlTag).toHaveBeenCalledTimes(7);
+    expect(sqlTag).toHaveBeenCalledTimes(9);
   });
 
   it("stores a compiled cover letter pdf in postgres", async () => {
     sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -179,6 +201,8 @@ describe("postgres document storage", () => {
           pdf_filename: "example-letter.pdf",
           pdf_data: new Uint8Array([1, 2, 3]),
           pdf_updated_at: "2026-04-04T13:00:00Z",
+          compile_status: "ready",
+          compile_error: null,
         },
       ]);
 
@@ -195,7 +219,9 @@ describe("postgres document storage", () => {
       pdf_filename: "example-letter.pdf",
       pdf_data: new Uint8Array([1, 2, 3]),
       pdf_updated_at: "2026-04-04T13:00:00Z",
+      compile_status: "ready",
+      compile_error: null,
     });
-    expect(sqlTag).toHaveBeenCalledTimes(7);
+    expect(sqlTag).toHaveBeenCalledTimes(9);
   });
 });

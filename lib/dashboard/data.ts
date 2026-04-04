@@ -214,6 +214,8 @@ export async function getStoredCoverLetters(): Promise<StoredCoverLetter[]> {
         updatedAt: letter.updated_at,
         pdfReady: Boolean(letter.pdf_filename && letter.pdf_data),
         pdfUpdatedAt: letter.pdf_updated_at,
+        compileStatus: letter.compile_status,
+        compileError: letter.compile_error,
       } satisfies StoredCoverLetter;
     })
     .filter((letter): letter is StoredCoverLetter => Boolean(letter));

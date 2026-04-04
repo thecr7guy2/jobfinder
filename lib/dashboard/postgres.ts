@@ -37,6 +37,8 @@ type CoverLetterRow = {
   pdf_filename: string | null;
   pdf_data: Uint8Array | null;
   pdf_updated_at: Date | string | null;
+  compile_status: string | null;
+  compile_error: string | null;
 };
 
 export type CoverLetterRecord = {
@@ -48,6 +50,8 @@ export type CoverLetterRecord = {
   pdf_filename: string | null;
   pdf_data: Uint8Array | null;
   pdf_updated_at: string | null;
+  compile_status: "idle" | "running" | "ready" | "failed";
+  compile_error: string | null;
 };
 
 let client: Sql | null = null;
@@ -118,7 +122,9 @@ async function ensureApplicationsTable(): Promise<void> {
           updated_at TIMESTAMPTZ NOT NULL,
           pdf_filename TEXT,
           pdf_data BYTEA,
-          pdf_updated_at TIMESTAMPTZ
+          pdf_updated_at TIMESTAMPTZ,
+          compile_status TEXT NOT NULL DEFAULT 'idle',
+          compile_error TEXT
         )
       `;
       await sql`
@@ -132,6 +138,14 @@ async function ensureApplicationsTable(): Promise<void> {
       await sql`
         ALTER TABLE cover_letters
         ADD COLUMN IF NOT EXISTS pdf_updated_at TIMESTAMPTZ
+      `;
+      await sql`
+        ALTER TABLE cover_letters
+        ADD COLUMN IF NOT EXISTS compile_status TEXT NOT NULL DEFAULT 'idle'
+      `;
+      await sql`
+        ALTER TABLE cover_letters
+        ADD COLUMN IF NOT EXISTS compile_error TEXT
       `;
     })();
   }
@@ -217,6 +231,13 @@ function toCoverLetterRecord(row: CoverLetterRow): CoverLetterRecord {
     pdf_filename: row.pdf_filename ?? null,
     pdf_data: row.pdf_data ?? null,
     pdf_updated_at: row.pdf_updated_at ? normalizedIso(row.pdf_updated_at) : null,
+    compile_status:
+      row.compile_status === "running" ||
+      row.compile_status === "ready" ||
+      row.compile_status === "failed"
+        ? row.compile_status
+        : "idle",
+    compile_error: row.compile_error ?? null,
   };
 }
 
@@ -224,7 +245,17 @@ export async function readCoverLetterRecord(jobId: string): Promise<CoverLetterR
   await ensureApplicationsTable();
   const sql = getClient();
   const rows = await sql<CoverLetterRow[]>`
-    SELECT job_id, filename, tex, preview_text, updated_at, pdf_filename, pdf_data, pdf_updated_at
+    SELECT
+      job_id,
+      filename,
+      tex,
+      preview_text,
+      updated_at,
+      pdf_filename,
+      pdf_data,
+      pdf_updated_at,
+      compile_status,
+      compile_error
     FROM cover_letters
     WHERE job_id = ${jobId}
     LIMIT 1
@@ -237,7 +268,17 @@ export async function readAllCoverLetterRecords(): Promise<CoverLetterRecord[]> 
   await ensureApplicationsTable();
   const sql = getClient();
   const rows = await sql<CoverLetterRow[]>`
-    SELECT job_id, filename, tex, preview_text, updated_at, pdf_filename, pdf_data, pdf_updated_at
+    SELECT
+      job_id,
+      filename,
+      tex,
+      preview_text,
+      updated_at,
+      pdf_filename,
+      pdf_data,
+      pdf_updated_at,
+      compile_status,
+      compile_error
     FROM cover_letters
     ORDER BY updated_at DESC
   `;
@@ -262,7 +303,9 @@ export async function upsertCoverLetterRecord(
       updated_at,
       pdf_filename,
       pdf_data,
-      pdf_updated_at
+      pdf_updated_at,
+      compile_status,
+      compile_error
     )
     VALUES (
       ${jobId},
@@ -272,6 +315,8 @@ export async function upsertCoverLetterRecord(
       ${normalizedIso(new Date())},
       NULL,
       NULL,
+      NULL,
+      'idle',
       NULL
     )
     ON CONFLICT (job_id) DO UPDATE SET
@@ -281,8 +326,20 @@ export async function upsertCoverLetterRecord(
       updated_at = EXCLUDED.updated_at,
       pdf_filename = NULL,
       pdf_data = NULL,
-      pdf_updated_at = NULL
-    RETURNING job_id, filename, tex, preview_text, updated_at, pdf_filename, pdf_data, pdf_updated_at
+      pdf_updated_at = NULL,
+      compile_status = 'idle',
+      compile_error = NULL
+    RETURNING
+      job_id,
+      filename,
+      tex,
+      preview_text,
+      updated_at,
+      pdf_filename,
+      pdf_data,
+      pdf_updated_at,
+      compile_status,
+      compile_error
   `;
 
   return toCoverLetterRecord(rows[0]);
@@ -300,9 +357,54 @@ export async function upsertCoverLetterPdfRecord(
     SET
       pdf_filename = ${pdfFilename},
       pdf_data = ${pdfData},
-      pdf_updated_at = ${normalizedIso(new Date())}
+      pdf_updated_at = ${normalizedIso(new Date())},
+      compile_status = 'ready',
+      compile_error = NULL
     WHERE job_id = ${jobId}
-    RETURNING job_id, filename, tex, preview_text, updated_at, pdf_filename, pdf_data, pdf_updated_at
+    RETURNING
+      job_id,
+      filename,
+      tex,
+      preview_text,
+      updated_at,
+      pdf_filename,
+      pdf_data,
+      pdf_updated_at,
+      compile_status,
+      compile_error
+  `;
+
+  if (!rows[0]) {
+    throw new Error(`No stored cover letter found for job id: ${jobId}`);
+  }
+
+  return toCoverLetterRecord(rows[0]);
+}
+
+export async function updateCoverLetterCompileState(
+  jobId: string,
+  status: "idle" | "running" | "ready" | "failed",
+  error: string | null = null,
+): Promise<CoverLetterRecord> {
+  await ensureApplicationsTable();
+  const sql = getClient();
+  const rows = await sql<CoverLetterRow[]>`
+    UPDATE cover_letters
+    SET
+      compile_status = ${status},
+      compile_error = ${error}
+    WHERE job_id = ${jobId}
+    RETURNING
+      job_id,
+      filename,
+      tex,
+      preview_text,
+      updated_at,
+      pdf_filename,
+      pdf_data,
+      pdf_updated_at,
+      compile_status,
+      compile_error
   `;
 
   if (!rows[0]) {

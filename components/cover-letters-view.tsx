@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import type { StoredCoverLetter } from "@/lib/dashboard/types";
 
@@ -15,6 +16,7 @@ function safeId(jobId: string): string {
 }
 
 export function CoverLettersView({ letters, selectedJobId = null }: CoverLettersViewProps) {
+  const router = useRouter();
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -24,6 +26,7 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
     () => letters.find((letter) => letter.jobId === selectedJobId) ?? null,
     [letters, selectedJobId],
   );
+  const hasRunningCompile = letters.some((letter) => letter.compileStatus === "running");
 
   useEffect(() => {
     if (!selectedJobId) {
@@ -35,6 +38,18 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
       target.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [selectedJobId]);
+
+  useEffect(() => {
+    if (!hasRunningCompile) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      router.refresh();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [hasRunningCompile, router]);
 
   async function compilePdf(jobId: string) {
     if (pendingJobId) {
@@ -60,8 +75,9 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
 
       setFeedback({
         tone: "success",
-        message: "Triggered PDF compilation. Refresh this page after the workflow finishes.",
+        message: "Triggered PDF compilation. This page will update automatically when the PDF is ready.",
       });
+      router.refresh();
       window.open(payload.runUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       setFeedback({
@@ -82,17 +98,30 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
 
       {feedback ? <div className={`inline-feedback inline-feedback-${feedback.tone}`}>{feedback.message}</div> : null}
 
+      {hasRunningCompile ? (
+        <div className="inline-feedback inline-feedback-success">PDF compilation is running. This page refreshes automatically until it finishes.</div>
+      ) : null}
+
       {selectedLetter ? (
         <section className="panel cover-letter-spotlight">
           <div className="panel-header">
             <h3>Selected letter</h3>
-            <span className="role-chip">From job page</span>
-          </div>
+              <span className="role-chip">From job page</span>
+            </div>
           <div className="detail-stack">
             <div className="stack">
               <strong>{selectedLetter.title}</strong>
               <span className="subtle">
                 {selectedLetter.companyName} · {selectedLetter.filename}
+              </span>
+              <span className="subtle">
+                {selectedLetter.compileStatus === "ready"
+                  ? "PDF ready"
+                  : selectedLetter.compileStatus === "running"
+                    ? "PDF compiling"
+                    : selectedLetter.compileStatus === "failed"
+                      ? `PDF failed${selectedLetter.compileError ? `: ${selectedLetter.compileError}` : ""}`
+                      : "PDF not compiled"}
               </span>
             </div>
             <div className="button-row">
@@ -103,6 +132,10 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                 <a className="secondary-button" href={`/api/cover-letter/pdf?jobId=${encodeURIComponent(selectedLetter.jobId)}`}>
                   Download PDF
                 </a>
+              ) : selectedLetter.compileStatus === "running" ? (
+                <button className="secondary-button" type="button" disabled>
+                  Compiling...
+                </button>
               ) : (
                 <button
                   className="secondary-button"
@@ -110,7 +143,11 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                   disabled={pendingJobId === selectedLetter.jobId}
                   onClick={() => compilePdf(selectedLetter.jobId)}
                 >
-                  {pendingJobId === selectedLetter.jobId ? "Triggering..." : "Compile PDF"}
+                  {pendingJobId === selectedLetter.jobId
+                    ? "Triggering..."
+                    : selectedLetter.compileStatus === "failed"
+                      ? "Retry compile"
+                      : "Compile PDF"}
                 </button>
               )}
             </div>
@@ -151,7 +188,15 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                   </td>
                   <td>{letter.companyName}</td>
                   <td>{new Date(letter.updatedAt).toLocaleDateString()}</td>
-                  <td>{letter.pdfReady ? "Ready" : "Not compiled"}</td>
+                  <td>
+                    {letter.compileStatus === "ready"
+                      ? "Ready"
+                      : letter.compileStatus === "running"
+                        ? "Running"
+                        : letter.compileStatus === "failed"
+                          ? "Failed"
+                          : "Not compiled"}
+                  </td>
                   <td>
                     <div className="button-row">
                       <Link className="secondary-button" href={`/jobs/${encodeURIComponent(letter.jobId)}?from=tracker`}>
@@ -161,6 +206,10 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                         <a className="secondary-button" href={`/api/cover-letter/pdf?jobId=${encodeURIComponent(letter.jobId)}`}>
                           Download PDF
                         </a>
+                      ) : letter.compileStatus === "running" ? (
+                        <button className="secondary-button" type="button" disabled>
+                          Compiling...
+                        </button>
                       ) : (
                         <button
                           className="secondary-button"
@@ -168,7 +217,11 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                           disabled={pendingJobId === letter.jobId}
                           onClick={() => compilePdf(letter.jobId)}
                         >
-                          {pendingJobId === letter.jobId ? "Triggering..." : "Compile PDF"}
+                          {pendingJobId === letter.jobId
+                            ? "Triggering..."
+                            : letter.compileStatus === "failed"
+                              ? "Retry compile"
+                              : "Compile PDF"}
                         </button>
                       )}
                     </div>
@@ -191,7 +244,15 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                   <strong>{letter.title}</strong>
                   <div className="mobile-job-company">{letter.companyName}</div>
                 </div>
-                <span className="status-pill status-new">{letter.pdfReady ? "pdf ready" : "stored"}</span>
+                <span className="status-pill status-new">
+                  {letter.compileStatus === "ready"
+                    ? "pdf ready"
+                    : letter.compileStatus === "running"
+                      ? "compiling"
+                      : letter.compileStatus === "failed"
+                        ? "failed"
+                        : "stored"}
+                </span>
               </div>
 
               <div className="mobile-meta-grid">
@@ -213,6 +274,10 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                   <a className="secondary-button mobile-detail-button" href={`/api/cover-letter/pdf?jobId=${encodeURIComponent(letter.jobId)}`}>
                     Download PDF
                   </a>
+                ) : letter.compileStatus === "running" ? (
+                  <button className="secondary-button mobile-detail-button" type="button" disabled>
+                    Compiling...
+                  </button>
                 ) : (
                   <button
                     className="secondary-button mobile-detail-button"
@@ -220,7 +285,11 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                     disabled={pendingJobId === letter.jobId}
                     onClick={() => compilePdf(letter.jobId)}
                   >
-                    {pendingJobId === letter.jobId ? "Triggering..." : "Compile PDF"}
+                    {pendingJobId === letter.jobId
+                      ? "Triggering..."
+                      : letter.compileStatus === "failed"
+                        ? "Retry compile"
+                        : "Compile PDF"}
                   </button>
                 )}
               </div>

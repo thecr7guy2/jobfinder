@@ -56,6 +56,16 @@ jobs:
           path: artifacts/cover-letters/*.pdf
           if-no-files-found: error
 
+      - name: Mark compile failed in Postgres
+        if: ${{ failure() }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+        run: |
+          node scripts/mark-cover-letter-compile-failed.mjs \
+            --job-id "${{ inputs.job_id }}" \
+            --error "Cover letter PDF workflow failed."
+
       - name: Notify Telegram on workflow failure
         if: ${{ failure() }}
         env:

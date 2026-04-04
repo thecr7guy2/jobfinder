@@ -67,7 +67,9 @@ async function storeCompiledPdf(sql, jobId, pdfFilename, pdfData) {
     SET
       pdf_filename = ${pdfFilename},
       pdf_data = ${pdfData},
-      pdf_updated_at = NOW()
+      pdf_updated_at = NOW(),
+      compile_status = 'ready',
+      compile_error = NULL
     WHERE job_id = ${jobId}
     RETURNING job_id
   `;
@@ -75,6 +77,16 @@ async function storeCompiledPdf(sql, jobId, pdfFilename, pdfData) {
   if (!rows[0]) {
     throw new Error(`No stored cover letter found for job id: ${jobId}`);
   }
+}
+
+async function markCompileState(sql, jobId, status, errorMessage = null) {
+  await sql`
+    UPDATE cover_letters
+    SET
+      compile_status = ${status},
+      compile_error = ${errorMessage}
+    WHERE job_id = ${jobId}
+  `;
 }
 
 async function runTectonic(texPath, outDir) {
@@ -112,6 +124,8 @@ async function main() {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "jobfinder-cover-letter-"));
 
   try {
+    await markCompileState(sql, jobId, "running", null);
+
     const letter = await fetchCoverLetter(sql, jobId);
     if (!letter) {
       throw new Error(`No stored cover letter found for job id: ${jobId}`);
@@ -130,6 +144,14 @@ async function main() {
     await storeCompiledPdf(sql, jobId, pdfName, pdfData);
 
     process.stdout.write(`${pdfPath}\n`);
+  } catch (error) {
+    await markCompileState(
+      sql,
+      jobId,
+      "failed",
+      error instanceof Error ? error.message.slice(0, 1000) : String(error).slice(0, 1000),
+    ).catch(() => {});
+    throw error;
   } finally {
     await sql.end({ timeout: 5 }).catch(() => {});
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});

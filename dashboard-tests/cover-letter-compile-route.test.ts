@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getSessionRole: vi.fn(),
   findJobById: vi.fn(),
+  readCoverLetterRecord: vi.fn(),
+  updateCoverLetterCompileState: vi.fn(),
 }));
 
 vi.mock("@/lib/dashboard/auth", () => ({
@@ -11,6 +13,11 @@ vi.mock("@/lib/dashboard/auth", () => ({
 
 vi.mock("@/lib/cover-letter/generate", () => ({
   findJobById: mocks.findJobById,
+}));
+
+vi.mock("@/lib/dashboard/postgres", () => ({
+  readCoverLetterRecord: mocks.readCoverLetterRecord,
+  updateCoverLetterCompileState: mocks.updateCoverLetterCompileState,
 }));
 
 import { POST } from "@/app/api/cover-letter/compile/route";
@@ -67,9 +74,31 @@ describe("cover letter compile route", () => {
     expect(response.status).toBe(404);
   });
 
+  it("rejects compile requests when no stored cover letter exists", async () => {
+    mocks.getSessionRole.mockResolvedValue("owner");
+    mocks.findJobById.mockResolvedValue({ id: "job-1" });
+    mocks.readCoverLetterRecord.mockResolvedValue(null);
+
+    const response = await POST(
+      new Request("http://localhost/api/cover-letter/compile", {
+        method: "POST",
+        body: JSON.stringify({ jobId: "job-1" }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Generate a cover letter first." });
+  });
+
   it("dispatches the GitHub workflow", async () => {
     mocks.getSessionRole.mockResolvedValue("owner");
     mocks.findJobById.mockResolvedValue({ id: "job-1" });
+    mocks.readCoverLetterRecord.mockResolvedValue({
+      job_id: "job-1",
+      compile_status: "idle",
+    });
+    mocks.updateCoverLetterCompileState.mockResolvedValue(undefined);
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({}),
@@ -85,6 +114,7 @@ describe("cover letter compile route", () => {
     );
 
     expect(fetchMock).toHaveBeenCalledOnce();
+    expect(mocks.updateCoverLetterCompileState).toHaveBeenCalledWith("job-1", "running");
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       ok: true,
