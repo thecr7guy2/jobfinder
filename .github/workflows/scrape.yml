@@ -113,3 +113,21 @@ jobs:
             git commit -m "chore: refresh job data [skip ci]"
           fi
           git push
+
+      - name: Notify Telegram on workflow failure
+        if: ${{ failure() }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          COMPANY_INPUT: ${{ inputs.company }}
+        run: |
+          set -euo pipefail
+          COMPANY_SUFFIX=""
+          if [ -n "${COMPANY_INPUT:-}" ]; then
+            COMPANY_SUFFIX="\nCompany: ${COMPANY_INPUT}"
+          fi
+          TEXT="⚠️ Scrape Jobs failed%0ARepo: ${{ github.repository }}%0ABranch: ${{ github.ref_name }}${COMPANY_SUFFIX}%0ARun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -fsSL -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${TEXT}" \
+            -d "disable_web_page_preview=true"
