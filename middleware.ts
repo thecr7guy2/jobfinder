@@ -10,6 +10,7 @@ export async function middleware(request: NextRequest) {
     pathname === "/inbox" ||
     pathname === "/tracker" ||
     pathname === "/dashboard" ||
+    pathname.startsWith("/jobs/") ||
     pathname.startsWith("/api/status/update");
 
   if (!protectedPath) {
@@ -28,5 +29,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/inbox", "/tracker", "/dashboard", "/api/status/update"],
+  matcher: ["/inbox", "/tracker", "/dashboard", "/jobs/:path*", "/api/status/update"],
 };

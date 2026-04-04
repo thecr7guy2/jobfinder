@@ -160,6 +160,11 @@ export async function getDashboardViewModel(): Promise<DashboardViewModel> {
   return deriveDashboardViewModel(jobs, applications);
 }
 
+export async function getDashboardJobById(jobId: string): Promise<DashboardJob | null> {
+  const viewModel = await getDashboardViewModel();
+  return viewModel.trackerJobs.find((job) => job.id === jobId) ?? null;
+}
+
 export function assertValidStatus(status: string): asserts status is ApplicationStatus {
   if (!APPLICATION_STATUSES.includes(status as ApplicationStatus)) {
     throw new Error(`Invalid application status: ${status}`);

@@ -210,6 +210,19 @@ button, input, select, textarea {
   line-height: 1.65;
 }
 
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.back-link::before {
+  content: "←";
+}
+
 /* ─── Stats grid ──────────────────────────────────────────────────── */
 
 .stats-grid {
@@ -444,6 +457,28 @@ tbody tr:hover {
 .subtle {
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.job-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.detail-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.detail-status-select {
+  max-width: 280px;
 }
 
 .mobile-job-card {
@@ -915,6 +950,11 @@ tbody tr:hover {
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .job-detail-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
   }
 
   .stat-card,

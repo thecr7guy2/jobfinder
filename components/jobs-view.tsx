@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import type { AccessRole, ApplicationStatus, DashboardJob } from "@/lib/dashboard/types";
@@ -17,37 +18,16 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
   const [query, setQuery] = useState("");
   const [company, setCompany] = useState("all");
   const [status, setStatus] = useState("all");
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [localJobs, setLocalJobs] = useState(jobs);
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
     message: string;
   } | null>(null);
-  const [coverLetterState, setCoverLetterState] = useState<{
-    status: "idle" | "loading" | "ready";
-    filename: string | null;
-    previewText: string | null;
-    tex: string | null;
-  }>({
-    status: "idle",
-    filename: null,
-    previewText: null,
-    tex: null,
-  });
 
   useEffect(() => {
     setLocalJobs(jobs);
   }, [jobs]);
-
-  useEffect(() => {
-    setCoverLetterState({
-      status: "idle",
-      filename: null,
-      previewText: null,
-      tex: null,
-    });
-  }, [selectedJobId]);
 
   useEffect(() => {
     if (!feedback) {
@@ -76,20 +56,6 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
       return matchesQuery && matchesCompany && matchesStatus;
     });
   }, [company, localJobs, query, status]);
-
-  const selectedJob = visibleJobs.find((job) => job.id === selectedJobId) ?? null;
-
-  function downloadCoverLetter(filename: string, tex: string) {
-    const blob = new Blob([tex], { type: "application/x-tex" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-  }
 
   async function updateStatus(jobId: string, nextStatus: ApplicationStatus) {
     if (role !== "owner" || pendingJobId === jobId) {
@@ -168,60 +134,6 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
     }
   }
 
-  async function generateCoverLetter(jobId: string) {
-    setCoverLetterState({
-      status: "loading",
-      filename: null,
-      previewText: null,
-      tex: null,
-    });
-    setFeedback(null);
-
-    try {
-      const response = await fetch("/api/cover-letter/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId }),
-      });
-
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            error?: string;
-            filename?: string;
-            previewText?: string;
-            tex?: string;
-          }
-        | null;
-
-      if (!response.ok || !payload?.filename || !payload?.tex || !payload?.previewText) {
-        throw new Error(payload?.error || "Failed to generate cover letter.");
-      }
-
-      setCoverLetterState({
-        status: "ready",
-        filename: payload.filename,
-        previewText: payload.previewText,
-        tex: payload.tex,
-      });
-      setFeedback({
-        tone: "success",
-        message: `Generated cover letter for ${selectedJob?.title || "selected job"}.`,
-      });
-      downloadCoverLetter(payload.filename, payload.tex);
-    } catch (error) {
-      setCoverLetterState({
-        status: "idle",
-        filename: null,
-        previewText: null,
-        tex: null,
-      });
-      setFeedback({
-        tone: "error",
-        message: error instanceof Error ? error.message : "Failed to generate cover letter.",
-      });
-    }
-  }
-
   return (
     <>
       <div className="hero">
@@ -277,10 +189,10 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
               {visibleJobs.map((job) => (
                 <tr key={job.id}>
                   <td>
-                    <button className="title-button" type="button" onClick={() => setSelectedJobId(job.id)}>
+                    <Link className="title-button" href={`/jobs/${encodeURIComponent(job.id)}?from=${mode}`}>
                       <strong>{job.title}</strong>
                       <span className="source-label">{job.source}</span>
-                    </button>
+                    </Link>
                   </td>
                   <td>
                     <span className="score-pill">{job.score ?? "N/A"}</span>
@@ -324,10 +236,10 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
             <article className="mobile-job-card" key={job.id}>
               <div className="mobile-job-top">
                 <div className="mobile-job-heading">
-                  <button className="title-button" type="button" onClick={() => setSelectedJobId(job.id)}>
+                  <Link className="title-button" href={`/jobs/${encodeURIComponent(job.id)}?from=${mode}`}>
                     <strong>{job.title}</strong>
                     <span className="source-label">{job.source}</span>
-                  </button>
+                  </Link>
                   <div className="mobile-job-company">{job.companyName}</div>
                 </div>
                 <span className="score-pill">{job.score ?? "N/A"}</span>
@@ -366,111 +278,14 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
                   <span className={`status-pill status-${job.applicationStatus}`}>{job.applicationStatus}</span>
                 )}
 
-                <button className="secondary-button mobile-detail-button" type="button" onClick={() => setSelectedJobId(job.id)}>
+                <Link className="secondary-button mobile-detail-button" href={`/jobs/${encodeURIComponent(job.id)}?from=${mode}`}>
                   {pendingJobId === job.id ? "Saving..." : "View details"}
-                </button>
+                </Link>
               </div>
             </article>
           ))}
         </div>
       </section>
-
-      {selectedJob ? (
-        <div className="drawer-backdrop" onClick={() => setSelectedJobId(null)}>
-          <aside className="drawer" onClick={(event) => event.stopPropagation()}>
-            <div className="drawer-header">
-              <div className="stack">
-                <span className="subtle">{selectedJob.companyName}</span>
-                <h3>{selectedJob.title}</h3>
-                <div className="button-row">
-                  <span className="score-pill">{selectedJob.score ?? "N/A"} / 100</span>
-                  <span className={`status-pill status-${selectedJob.applicationStatus}`}>{selectedJob.applicationStatus}</span>
-                </div>
-              </div>
-              <button className="drawer-close" type="button" onClick={() => setSelectedJobId(null)}>
-                ×
-              </button>
-            </div>
-
-            <div className="drawer-body">
-              <div className="stack">
-                <span className="subtle">Location</span>
-                <strong>{selectedJob.location}</strong>
-              </div>
-              <div className="stack">
-                <span className="subtle">Rationale</span>
-                <div>{selectedJob.rationale || "No rationale recorded."}</div>
-              </div>
-              <div className="stack">
-                <span className="subtle">Keyword hits</span>
-                <div className="badge-list">
-                  {selectedJob.keywordHits.length ? selectedJob.keywordHits.map((hit) => <span key={hit} className="mini-badge">{hit}</span>) : <span className="subtle">No keyword hits recorded</span>}
-                </div>
-              </div>
-              <div className="stack">
-                <span className="subtle">Categories</span>
-                <div className="badge-list">
-                  {selectedJob.categories.length ? selectedJob.categories.map((category) => <span key={category} className="mini-badge">{category}</span>) : <span className="subtle">No categories</span>}
-                </div>
-              </div>
-              <div className="stack">
-                <span className="subtle">Description</span>
-                <div className="description">{selectedJob.description}</div>
-              </div>
-              <div className="button-row">
-                <a className="primary-button" href={selectedJob.url} target="_blank" rel="noreferrer">
-                  Open source job
-                </a>
-                {role === "owner" ? (
-                  <>
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      disabled={coverLetterState.status === "loading"}
-                      onClick={() => generateCoverLetter(selectedJob.id)}
-                    >
-                      {coverLetterState.status === "loading" ? "Generating..." : "Generate cover letter"}
-                    </button>
-                    {coverLetterState.status === "ready" && coverLetterState.filename && coverLetterState.tex ? (
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={() => downloadCoverLetter(coverLetterState.filename!, coverLetterState.tex!)}
-                      >
-                        Download .tex
-                      </button>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-              {role === "owner" && coverLetterState.status === "ready" && coverLetterState.previewText ? (
-                <div className="stack">
-                  <span className="subtle">Cover letter preview</span>
-                  <div className="description">{coverLetterState.previewText}</div>
-                </div>
-              ) : null}
-              {role === "owner" && coverLetterState.status === "loading" ? (
-                <div className="stack">
-                  <span className="subtle">Cover letter</span>
-                  <div className="description">Generating draft from your resume, prompt instructions, and this job description.</div>
-                </div>
-              ) : null}
-              {role === "owner" && coverLetterState.status === "ready" && coverLetterState.filename ? (
-                <div className="stack">
-                  <span className="subtle">Generated file</span>
-                  <strong>{coverLetterState.filename}</strong>
-                </div>
-              ) : null}
-              {role === "owner" ? (
-                <div className="stack">
-                  <span className="subtle">Cover letter workflow</span>
-                  <div className="description">This v1 generates a LaTeX file for immediate download. PDF compilation with Tectonic can be added next.</div>
-                </div>
-              ) : null}
-            </div>
-          </aside>
-        </div>
-      ) : null}
     </>
   );
 }
