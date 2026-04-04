@@ -222,7 +222,7 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
             ) : null}
             <div className="button-row">
               <a className="primary-button" href={localJob.url} target="_blank" rel="noreferrer">
-                Open source job
+                View job
               </a>
               {role === "owner" ? (
                 <button
@@ -280,18 +280,6 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
                   : <span className="subtle">No categories</span>}
               </div>
             </div>
-            {role === "owner" && coverLetterState.status === "loading" ? (
-              <div className="stack">
-                <span className="subtle">Cover letter</span>
-                <div className="description">Generating draft from your resume, prompt instructions, and this job description.</div>
-              </div>
-            ) : null}
-            {role === "owner" && coverLetterState.status === "ready" && coverLetterState.previewText ? (
-              <div className="stack">
-                <span className="subtle">Cover letter preview</span>
-                <div className="description">{coverLetterState.previewText}</div>
-              </div>
-            ) : null}
             {role === "owner" && coverLetterState.status === "ready" && coverLetterState.filename ? (
               <div className="stack">
                 <span className="subtle">Generated file</span>
@@ -301,6 +289,24 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
           </div>
         </section>
       </div>
+
+      {role === "owner" && coverLetterState.status === "loading" ? (
+        <section className="panel">
+          <div className="panel-header">
+            <h3>Cover letter</h3>
+          </div>
+          <div className="description">Generating draft from your resume, prompt instructions, and this job description.</div>
+        </section>
+      ) : null}
+
+      {role === "owner" && coverLetterState.status === "ready" && coverLetterState.previewText ? (
+        <section className="panel">
+          <div className="panel-header">
+            <h3>Cover letter preview</h3>
+          </div>
+          <div className="description">{coverLetterState.previewText}</div>
+        </section>
+      ) : null}
 
       <section className="panel">
         <div className="panel-header">
