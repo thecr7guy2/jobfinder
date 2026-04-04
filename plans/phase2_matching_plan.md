@@ -1,13 +1,13 @@
-# Phase 2 Plan: Matching With Hosted Open-Model APIs
+# Phase 2 Plan: DeepSeek-Based Matching
 
 ## Summary
 
-Build a Phase 2 matching pipeline that reads jobs from `data/jobs.json`, runs three cheap deterministic filters, and sends only shortlisted jobs to a third-party hosted API serving open-weight/open-source models. This phase does not host any model locally and does not plan around self-hosting.
+Build a Phase 2 matching pipeline that reads jobs from `data/jobs.json`, runs three cheap deterministic filters, and sends only shortlisted jobs to the DeepSeek API for final scoring.
 
 Defaults locked for this plan:
 - matching preferences live in `config/matching.yaml`
 - scoring is incremental by default: only new or changed jobs are rescored
-- the LLM step uses a provider-agnostic HTTP client for hosted open-model APIs
+- the LLM step uses a provider-configurable OpenAI-compatible HTTP client, currently pointed at DeepSeek
 - `data/jobs.json` remains the single write target for match results
 
 ## Key Changes
@@ -25,7 +25,7 @@ Defaults locked for this plan:
   - `llm.timeout_seconds`
   - `llm.api_style`
 - Set `llm.api_style` to `openai_compatible` for v1.
-- Add `data/resume.txt` as the plain-text resume input.
+- Add `data/resume.md` as the resume input.
 - Add `match_jobs.py` with CLI flags:
   - `--company <id>`
   - `--job-id <id>`
@@ -36,8 +36,8 @@ Defaults locked for this plan:
   - location filter
   - keyword overlap heuristic
 - Hosted LLM stage:
-  - call a third-party API endpoint, not a local model
-  - use an OpenAI-compatible `/chat/completions` request shape in v1
+  - call the DeepSeek API, not a local model
+  - use the OpenAI-compatible `/chat/completions` request shape
   - pass compact job data plus resume text
   - require strict JSON response with `score` and `rationale`
 - Persist per-job match data under `match`:
@@ -67,13 +67,13 @@ Defaults locked for this plan:
 ## To-Do List
 
 - Create `config/matching.yaml` with default title, location, keyword, threshold, and hosted API settings.
-- Add `data/resume.txt` placeholder and README instructions.
+- Add `data/resume.md` placeholder and README instructions.
 - Implement config loading and resume loading.
 - Implement job fingerprinting for incremental rescoring.
 - Implement title filtering.
 - Implement location filtering, including remote handling.
 - Implement keyword scoring and shortlist thresholding.
-- Implement the hosted open-model API client using `requests`.
+- Implement the DeepSeek API client using `requests`.
 - Implement strict JSON parsing and score validation.
 - Merge `match` results back into `data/jobs.json`.
 - Add CLI summary output for scanned, skipped, filtered, LLM-called, scored, and errored jobs.
@@ -95,7 +95,6 @@ Defaults locked for this plan:
 
 ## Assumptions
 
-- "Open-source model" here means a hosted API plan for an open-weight/open-source model, not local inference and not self-hosting.
-- Phase 2 will support providers that expose an OpenAI-compatible chat-completions API shape.
+- Phase 2 uses DeepSeek Chat (`deepseek-chat`) by default through an OpenAI-compatible API shape.
 - Default score threshold is `70` for later reuse in Phase 3 alerts.
 - No separate matches file will be added; `data/jobs.json` stays the source of truth.
