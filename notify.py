@@ -123,14 +123,10 @@ def select_alertable_jobs(
     return selected, skipped_alerted
 
 
-def escape_markdown(value: str | None) -> str:
+def escape_html(value: str | None) -> str:
     if not value:
         return ""
-
-    escaped = str(value)
-    for token in ("\\", "_", "*", "[", "]", "`"):
-        escaped = escaped.replace(token, f"\\{token}")
-    return escaped
+    return str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def truncate_rationale(value: str, limit: int = 150) -> str:
@@ -143,26 +139,26 @@ def truncate_rationale(value: str, limit: int = 150) -> str:
 def format_job_alert(job: dict[str, Any]) -> str:
     match = dict(job["match"])
     score = int(match["llm_score"])
-    title = escape_markdown(str(job.get("title") or "Unknown title"))
-    company = escape_markdown(str(job.get("company_name") or str(job.get("company_id") or "Unknown company")))
-    location = escape_markdown(str(job.get("location") or "Unknown location"))
-    rationale = escape_markdown(truncate_rationale(str(match.get("llm_rationale") or "")))
-    url = str(job.get("url") or "")
+    title = escape_html(str(job.get("title") or "Unknown title"))
+    company = escape_html(str(job.get("company_name") or str(job.get("company_id") or "Unknown company")))
+    location = escape_html(str(job.get("location") or "Unknown location"))
+    rationale = escape_html(truncate_rationale(str(match.get("llm_rationale") or "")))
+    url = escape_html(str(job.get("url") or ""))
 
     return (
-        f"*[{score}/100] {title} - {company}*\n"
+        f"<b>[{score}/100] {title} — {company}</b>\n"
         f"📍 {location}\n"
-        f"💬 _{rationale}_\n\n"
-        f"🔗 [View job]({url})"
+        f"💬 <i>{rationale}</i>\n\n"
+        f'🔗 <a href="{url}">View job</a>'
     )
 
 
 def format_failure_alert(company_name: str, observed_count: int, timestamp: str) -> str:
     return (
-        f"⚠️ *Source warning: {escape_markdown(company_name)}*\n"
+        f"⚠️ <b>Source warning: {escape_html(company_name)}</b>\n"
         f"No jobs returned for 2 consecutive runs.\n"
         f"Observed count: {observed_count}\n"
-        f"Timestamp: {escape_markdown(timestamp)}"
+        f"Timestamp: {escape_html(timestamp)}"
     )
 
 
@@ -177,12 +173,15 @@ def telegram_send_message(
         data={
             "chat_id": chat_id,
             "text": text,
-            "parse_mode": "Markdown",
+            "parse_mode": "HTML",
             "disable_web_page_preview": "true",
         },
         timeout=30,
     )
-    response.raise_for_status()
+    if not response.ok:
+        raise RuntimeError(
+            f"Telegram API {response.status_code}: {response.text}"
+        )
     payload = response.json()
     if not payload.get("ok"):
         raise RuntimeError(f"Telegram API returned ok={payload.get('ok')}: {payload}")

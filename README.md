@@ -14,7 +14,7 @@ Everything is designed to run on GitHub infrastructure: Actions for scheduling, 
 
 ## Current Status
 
-The repository currently implements Phases 1, 2, and 3: job scraping, normalization, cache-backed refresh, DeepSeek-based job matching, and Telegram alerting.
+The repository currently implements Phases 1, 2, and 3, with Phase 4 now in progress: job scraping, normalization, cache-backed refresh, DeepSeek-based job matching, Telegram alerting, and a protected dashboard scaffold.
 
 Active sources today:
 - Booking.com
@@ -122,6 +122,8 @@ Current behavior:
 
 Goal: provide a static dashboard to review jobs and track application status.
 
+Status: in progress.
+
 Planned views:
 - Inbox
 - Tracker
@@ -156,6 +158,8 @@ Expected secrets:
 - `TELEGRAM_CHAT_ID`
 - `DEEPSEEK_API_KEY`
 - `GH_PAT`
+- `VIEWER_ACCESS_CODE`
+- `OWNER_ACCESS_CODE`
 
 ## Repository Layout
 
@@ -185,11 +189,23 @@ jobfinder/
 │   ├── ing.py
 │   └── icims.py
 ├── fetch_jobs.py
+├── dashboard-tests/
+│   ├── auth.test.ts
+│   └── data.test.ts
+├── app/
+│   ├── dashboard/
+│   ├── inbox/
+│   ├── login/
+│   └── tracker/
+├── components/
+├── lib/
 ├── match_jobs.py
 ├── notify.py
+├── package.json
 ├── pyproject.toml
 ├── tests/
 │   └── test_match_jobs.py
+├── tsconfig.json
 └── uv.lock
 ```
 
@@ -237,10 +253,13 @@ DEEPSEEK_API_KEY=your_key_here
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
 GH_PAT=your_github_pat_here
+VIEWER_ACCESS_CODE=your_viewer_code_here
+OWNER_ACCESS_CODE=your_owner_code_here
 ```
 
 `DEEPSEEK_API_KEY` is used by matching. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
-are used by `notify.py`. `GH_PAT` is still for a later phase.
+are used by `notify.py`. `VIEWER_ACCESS_CODE` and `OWNER_ACCESS_CODE` protect the
+dashboard. `GH_PAT` is used for owner status write-back from the dashboard.
 
 If you prefer exporting the current required key directly:
 
@@ -286,6 +305,16 @@ uv run python notify.py --company booking_com
 uv run python notify.py --failures-only
 uv run python notify.py --dry-run --resend
 ```
+
+Run the dashboard locally:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Then open `http://localhost:3000/login` and enter either the viewer code or owner code
+from `.env`.
 
 ## Data Model
 

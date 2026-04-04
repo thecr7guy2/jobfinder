@@ -15,9 +15,19 @@ from notify import (
 
 
 class DummyResponse:
-    def __init__(self, payload: dict, status_error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        payload: dict,
+        status_error: Exception | None = None,
+        ok: bool = True,
+        status_code: int = 200,
+        text: str = "",
+    ) -> None:
         self.payload = payload
         self.status_error = status_error
+        self.ok = ok
+        self.status_code = status_code
+        self.text = text
 
     def raise_for_status(self) -> None:
         if self.status_error is not None:
@@ -94,9 +104,9 @@ class NotifyTests(unittest.TestCase):
 
     def test_format_job_alert_contains_expected_sections(self) -> None:
         message = format_job_alert(self.make_job())
-        self.assertIn("*[85/100] Senior Machine Learning Engineer - Booking.com*", message)
+        self.assertIn("<b>[85/100] Senior Machine Learning Engineer — Booking.com</b>", message)
         self.assertIn("📍 Amsterdam, Netherlands", message)
-        self.assertIn("🔗 [View job](https://example.com/job)", message)
+        self.assertIn('<a href="https://example.com/job">View job</a>', message)
 
     def test_telegram_send_message_returns_message_id(self) -> None:
         session = DummySession(DummyResponse({"ok": True, "result": {"message_id": 123}}))

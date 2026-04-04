@@ -5,3 +5,6 @@ data/cache/*.json
 data/resume.md
 .env
 .env.*
+node_modules/
+.next/
+coverage/
