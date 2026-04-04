@@ -100,6 +100,16 @@ function sortByScoreAndRecency(jobs: DashboardJob[]): DashboardJob[] {
   });
 }
 
+function sortByRecencyAndScore(jobs: DashboardJob[]): DashboardJob[] {
+  return [...jobs].sort((left, right) => {
+    const recencyDelta = String(right.firstSeen ?? "").localeCompare(String(left.firstSeen ?? ""));
+    if (recencyDelta !== 0) {
+      return recencyDelta;
+    }
+    return (right.score ?? -1) - (left.score ?? -1);
+  });
+}
+
 function buildMetrics(jobs: DashboardJob[], inboxJobs: DashboardJob[]): DashboardMetrics {
   const statusCounts = APPLICATION_STATUSES.map((status) => ({
     status,
@@ -146,10 +156,19 @@ export function deriveDashboardViewModel(
         !(job.id in applications),
     ),
   );
+  const newJobs = sortByRecencyAndScore(
+    dashboardJobs.filter(
+      (job) =>
+        !(job.id in applications) &&
+        Boolean(job.firstSeen) &&
+        job.firstSeen === job.lastSeen,
+    ),
+  );
   const trackerJobs = sortByScoreAndRecency(dashboardJobs);
 
   return {
     inboxJobs,
+    newJobs,
     trackerJobs,
     metrics: buildMetrics(dashboardJobs, inboxJobs),
   };

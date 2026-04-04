@@ -17,6 +17,7 @@ export default async function InboxPage() {
         title="Inbox"
         subtitle="Start with the strongest unreviewed matches, then open details in-place without losing context."
         jobs={viewModel.inboxJobs}
+        alternateJobs={viewModel.newJobs}
         role={role}
         mode="inbox"
       />

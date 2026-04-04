@@ -89,6 +89,7 @@ export type DashboardMetrics = {
 
 export type DashboardViewModel = {
   inboxJobs: DashboardJob[];
+  newJobs: DashboardJob[];
   trackerJobs: DashboardJob[];
   metrics: DashboardMetrics;
 };

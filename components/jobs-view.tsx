@@ -10,15 +10,18 @@ type JobsViewProps = {
   title: string;
   subtitle: string;
   jobs: DashboardJob[];
+  alternateJobs?: DashboardJob[];
   role: AccessRole;
   mode: "inbox" | "tracker";
 };
 
-export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
+export function JobsView({ title, subtitle, jobs, alternateJobs = [], role, mode }: JobsViewProps) {
   const [query, setQuery] = useState("");
   const [company, setCompany] = useState("all");
   const [status, setStatus] = useState("all");
+  const [queue, setQueue] = useState<"high_score" | "newly_added">("high_score");
   const [localJobs, setLocalJobs] = useState(jobs);
+  const [alternateLocalJobs, setAlternateLocalJobs] = useState(alternateJobs);
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -28,6 +31,10 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
   useEffect(() => {
     setLocalJobs(jobs);
   }, [jobs]);
+
+  useEffect(() => {
+    setAlternateLocalJobs(alternateJobs);
+  }, [alternateJobs]);
 
   useEffect(() => {
     if (!feedback) {
@@ -42,12 +49,14 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
   }, [feedback]);
 
   const companies = useMemo(
-    () => ["all", ...new Set(localJobs.map((job) => job.companyName))],
-    [localJobs],
+    () => ["all", ...new Set((mode === "inbox" && queue === "newly_added" ? alternateLocalJobs : localJobs).map((job) => job.companyName))],
+    [alternateLocalJobs, localJobs, mode, queue],
   );
 
+  const jobsPool = mode === "inbox" && queue === "newly_added" ? alternateLocalJobs : localJobs;
+
   const visibleJobs = useMemo(() => {
-    return localJobs.filter((job) => {
+    return jobsPool.filter((job) => {
       const matchesQuery =
         !query ||
         `${job.title} ${job.companyName} ${job.location}`.toLowerCase().includes(query.toLowerCase());
@@ -55,7 +64,7 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
       const matchesStatus = status === "all" || job.applicationStatus === status;
       return matchesQuery && matchesCompany && matchesStatus;
     });
-  }, [company, localJobs, query, status]);
+  }, [company, jobsPool, query, status]);
 
   async function updateStatus(jobId: string, nextStatus: ApplicationStatus) {
     if (role !== "owner" || pendingJobId === jobId) {
@@ -150,6 +159,12 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
         </div>
 
         <div className="filters">
+          {mode === "inbox" ? (
+            <select value={queue} onChange={(event) => setQueue(event.target.value as "high_score" | "newly_added")}>
+              <option value="high_score">High-score queue</option>
+              <option value="newly_added">Newly added jobs</option>
+            </select>
+          ) : null}
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}

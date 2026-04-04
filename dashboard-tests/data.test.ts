@@ -87,6 +87,7 @@ describe("dashboard data derivation", () => {
     const viewModel = deriveDashboardViewModel(jobs, {});
     expect(viewModel.inboxJobs).toHaveLength(1);
     expect(viewModel.inboxJobs[0].id).toBe("job-1");
+    expect(viewModel.newJobs).toHaveLength(3);
   });
 
   it("respects application state and removes reviewed items from inbox", () => {
@@ -100,6 +101,7 @@ describe("dashboard data derivation", () => {
     };
     const viewModel = deriveDashboardViewModel(jobs, applications);
     expect(viewModel.inboxJobs).toHaveLength(0);
+    expect(viewModel.newJobs).toHaveLength(2);
     expect(viewModel.trackerJobs.find((job) => job.id === "job-1")?.applicationStatus).toBe("applied");
   });
 
