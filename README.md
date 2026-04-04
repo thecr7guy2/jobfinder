@@ -157,9 +157,9 @@ Expected secrets:
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 - `DEEPSEEK_API_KEY`
-- `GH_PAT`
 - `VIEWER_ACCESS_CODE`
 - `OWNER_ACCESS_CODE`
+- `DATABASE_URL` or `POSTGRES_URL`
 
 ## Repository Layout
 
@@ -252,14 +252,15 @@ Main secrets now live in `.env`:
 DEEPSEEK_API_KEY=your_key_here
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
-GH_PAT=your_github_pat_here
 VIEWER_ACCESS_CODE=your_viewer_code_here
 OWNER_ACCESS_CODE=your_owner_code_here
+DATABASE_URL=your_postgres_connection_string
 ```
 
 `DEEPSEEK_API_KEY` is used by matching. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
 are used by `notify.py`. `VIEWER_ACCESS_CODE` and `OWNER_ACCESS_CODE` protect the
-dashboard. `GH_PAT` is used for owner status write-back from the dashboard.
+dashboard. `DATABASE_URL` or `POSTGRES_URL` is used for owner status write-back
+and persisted application state.
 
 If you prefer exporting the current required key directly:
 

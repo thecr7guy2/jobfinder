@@ -147,7 +147,7 @@ Wire everything together so it runs on a schedule without manual intervention.
 | `cover_letter.yml` | workflow_dispatch (job_id param) | generate_cover_letter.py + commit + Telegram |
 | `deploy.yml` | Push to main | Build and deploy GitHub Pages |
 
-**Secrets needed:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DEEPSEEK_API_KEY`, `GH_PAT` (for dashboard write-back)
+**Secrets needed:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DEEPSEEK_API_KEY`, `VIEWER_ACCESS_CODE`, `OWNER_ACCESS_CODE`, and `DATABASE_URL` or `POSTGRES_URL` (for dashboard write-back)
 
 **Done when:** No manual intervention needed; jobs discovered and alerted automatically every 8 hours.
 

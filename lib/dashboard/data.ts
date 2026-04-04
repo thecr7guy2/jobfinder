@@ -11,7 +11,7 @@ import type {
   JobRecord,
 } from "@/lib/dashboard/types";
 import { APPLICATION_STATUSES } from "@/lib/dashboard/constants";
-import { readRepoJsonFile, updateRepoJsonFile } from "@/lib/dashboard/github";
+import { hasPostgresConfigured, readApplicationsFromPostgres, upsertApplicationRecord } from "@/lib/dashboard/postgres";
 
 const ROOT_DIR = process.cwd();
 const JOBS_PATH = path.join(ROOT_DIR, "data", "jobs.json");
@@ -38,8 +38,8 @@ export async function readJobs(): Promise<JobRecord[]> {
 }
 
 export async function readApplications(): Promise<ApplicationsFile> {
-  if (process.env.GH_PAT) {
-    return readRepoJsonFile<ApplicationsFile>("data/applications.json", {});
+  if (hasPostgresConfigured()) {
+    return readApplicationsFromPostgres();
   }
   return readJsonFile<ApplicationsFile>(APPLICATIONS_PATH, {});
 }
@@ -178,17 +178,8 @@ export async function updateApplicationStatus(params: {
     updated_by_role: params.role,
   };
 
-  if (process.env.GH_PAT) {
-    await updateRepoJsonFile<ApplicationsFile>({
-      path: "data/applications.json",
-      fallback: {},
-      message: `Update application status for ${params.jobId} to ${params.status}`,
-      apply: (current) => ({
-        ...current,
-        [params.jobId]: record,
-      }),
-    });
-    return record;
+  if (hasPostgresConfigured()) {
+    return upsertApplicationRecord(record);
   }
 
   const applications = await readApplications();
