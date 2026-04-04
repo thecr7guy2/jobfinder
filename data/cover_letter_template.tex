@@ -1,27 +1,59 @@
-\documentclass[11pt]{letter}
-\usepackage[margin=1in]{geometry}
-\usepackage[T1]{fontenc}
+\documentclass[12pt]{article}
 \usepackage[utf8]{inputenc}
-\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{fontawesome5}
+\usepackage{eso-pic}
+\usepackage{charter}
 \usepackage{setspace}
-\setlength{\parskip}{0.9em}
-\setlength{\parindent}{0pt}
 
-\signature{Sai}
-\address{Sai\\Amsterdam, Netherlands}
-\date{{{DATE}}}
+\definecolor{headergray}{RGB}{231,231,231}
+\setlength{\parindent}{24pt}
+\setlength{\parskip}{0.85em}
+\pagestyle{empty}
 
 \begin{document}
 
-\begin{letter}{Hiring Team\\{{COMPANY_NAME}}}
+\AddToShipoutPictureBG{%
+\color{headergray}
+\AtPageUpperLeft{\rule[-1.22in]{\paperwidth}{1.22in}}
+}
 
-\opening{Dear Hiring Team,}
+\begin{center}
+{\fontsize{29}{32}\selectfont\scshape {{FULL_NAME}}}
 
-I am applying for the {{ROLE_TITLE}} position at {{COMPANY_NAME}}.
+\vspace{0.16in}
+\href{mailto:{{EMAIL}}}{\faEnvelope\enspace {{EMAIL}}}\hfill
+\href{https://linkedin.com/in/{{LINKEDIN}}}{\faLinkedinIn\enspace {{LINKEDIN}}}\hfill
+\href{tel:{{PHONE}}}{\faPhone\enspace {{PHONE}}}\hfill
+\faMapMarker\enspace {{LOCATION}}
+\end{center}
 
-{{LETTER_BODY}}
+\vspace{0.36in}
 
-\closing{Sincerely,}
+{{DATE}}\\
 
-\end{letter}
+\vspace{0.14in}
+
+Subject: {{SUBJECT}}\\
+
+\vspace{0.20in}
+
+Dear Hiring Committee,\\
+
+\vspace{0.18in}
+
+\noindent{{LETTER_BODY}}
+
+\vspace{0.24in}
+
+\begin{flushright}
+{{CLOSER}},\\[1.4em]
+{{FULL_NAME}}\\
+{{TITLE}}
+\end{flushright}
+
 \end{document}

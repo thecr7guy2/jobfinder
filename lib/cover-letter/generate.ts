@@ -14,6 +14,14 @@ function isoDateStamp(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function displayDate(): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date());
+}
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -126,9 +134,17 @@ export async function generateCoverLetter(job: JobRecord): Promise<GeneratedCove
   ]);
 
   const tex = injectTemplatePlaceholders(template, {
-    DATE: isoDateStamp(),
+    DATE: escapeLatex(displayDate()),
+    FULL_NAME: escapeLatex("Maniraj Sai"),
+    EMAIL: escapeLatex("mairajadapa@gmail.com"),
+    LINKEDIN: escapeLatex("manirajsai"),
+    PHONE: escapeLatex("+31 684011721"),
+    LOCATION: escapeLatex("Arnhem, NL"),
+    TITLE: escapeLatex("Applicant"),
+    CLOSER: escapeLatex("Kind Regards"),
     COMPANY_NAME: escapeLatex(job.company_name),
     ROLE_TITLE: escapeLatex(job.title),
+    SUBJECT: escapeLatex(`Application for the position of ${job.title}.`),
     LETTER_BODY: letterBody,
   });
 
