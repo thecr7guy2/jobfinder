@@ -33,6 +33,7 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
     savedMode: null,
     previewText: null,
   });
+  const [pendingPdf, setPendingPdf] = useState(false);
 
   useEffect(() => {
     setLocalJob(job);
@@ -157,6 +158,43 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
     }
   }
 
+  async function compileCoverLetterPdf() {
+    if (role !== "owner" || pendingPdf) {
+      return;
+    }
+
+    setPendingPdf(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/cover-letter/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: localJob.id }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; runUrl?: string }
+        | null;
+
+      if (!response.ok || !payload?.runUrl) {
+        throw new Error(payload?.error || "Failed to trigger PDF compilation.");
+      }
+
+      setFeedback({
+        tone: "success",
+        message: "Triggered PDF compilation workflow in GitHub Actions.",
+      });
+      window.open(payload.runUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Failed to trigger PDF compilation.",
+      });
+    } finally {
+      setPendingPdf(false);
+    }
+  }
+
   return (
     <>
       <div className="hero">
@@ -235,6 +273,16 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
                   onClick={generateCoverLetter}
                 >
                   {coverLetterState.status === "loading" ? "Generating..." : "Generate cover letter"}
+                </button>
+              ) : null}
+              {role === "owner" && coverLetterState.status === "ready" ? (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={pendingPdf}
+                  onClick={compileCoverLetterPdf}
+                >
+                  {pendingPdf ? "Triggering PDF..." : "Compile PDF"}
                 </button>
               ) : null}
             </div>
