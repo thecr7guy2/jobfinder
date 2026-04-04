@@ -86,16 +86,19 @@ Done when:
 
 Goal: score each new job against a plain-text resume using a cheap-first staged pipeline.
 
-Planned deliverables:
-- `data/resume.txt`
+Status: implemented.
+
+Main deliverables in this repo:
+- `config/matching.yaml`
+- `data/resume.md`
 - `match_jobs.py`
 - match data written back into `data/jobs.json`
 
-Planned stages:
+Current stages:
 1. title filter
 2. location filter
 3. keyword overlap heuristic
-4. LLM score for shortlisted roles only
+4. DeepSeek API score for shortlisted roles only
 
 ### Phase 3 - Telegram Alerts
 
@@ -142,7 +145,7 @@ Planned workflows:
 Expected secrets:
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
-- `GEMINI_API_KEY`
+- `DEEPSEEK_API_KEY`
 - `GH_PAT`
 
 ## Repository Layout
@@ -173,7 +176,7 @@ jobfinder/
 
 ## Current Usage
 
-This project uses `uv` and currently supports the scraper pipeline only.
+This project uses `uv` and currently supports the scraper pipeline plus Phase 2 matching.
 
 Install dependencies:
 
@@ -201,6 +204,47 @@ uv run python fetch_jobs.py --company tno
 uv run python fetch_jobs.py --company adyen
 uv run python fetch_jobs.py --company abn_amro
 uv run python fetch_jobs.py --company ing
+```
+
+Configure matching preferences in `config/matching.yaml`.
+If you want to use a different DeepSeek model than the default, update
+`matching.llm.model` there before running the matcher.
+
+Main secrets now live in `.env`:
+
+```bash
+DEEPSEEK_API_KEY=your_key_here
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+GH_PAT=your_github_pat_here
+```
+
+Right now only `DEEPSEEK_API_KEY` is used by the implemented code. The Telegram and GitHub values
+are placeholders for upcoming phases.
+
+If you prefer exporting the current required key directly:
+
+```bash
+export DEEPSEEK_API_KEY=your_key_here
+```
+
+Score all jobs:
+
+```bash
+uv run python match_jobs.py
+```
+
+Preview matching without writing `data/jobs.json`:
+
+```bash
+uv run python match_jobs.py --dry-run --rescore-all
+```
+
+Score one company or one job:
+
+```bash
+uv run python match_jobs.py --company booking_com
+uv run python match_jobs.py --job-id abn_amro::9162
 ```
 
 ## Data Model

@@ -1,0 +1,74 @@
+matching:
+  target_titles:
+    - Data Scientist
+    - Senior Data Scientist
+    - Applied Scientist
+    - Research Scientist
+    - AI Scientist
+    - Machine Learning Engineer
+    - Senior Machine Learning Engineer
+    - Machine Learning Scientist
+    - Machine Learning Researcher
+    - Applied AI Engineer
+    - AI Engineer
+    - AI Specialist
+    - AI Expert
+    - Data Engineer
+    - Analytics Engineer
+    - Data Analyst
+    - Data Analist
+    - GenAI Engineer
+    - GenAI Expert
+    - LLM Engineer
+    - LLM Expert
+    - NLP Engineer
+    - NLP Scientist
+    - Prompt Engineer
+    - AI Lead
+    - GenAI Lead
+    - ML Lead
+  preferred_locations: []
+  allow_remote: true
+  remote_markers:
+    - remote
+    - remotely
+    - hybrid
+    - work from home
+    - home-based
+  keyword_terms:
+    - python
+    - machine learning
+    - data science
+    - llm
+    - genai
+    - nlp
+    - sql
+    - spark
+    - databricks
+    - mlops
+    - docker
+    - kubernetes
+    - azure
+    - artificial intelligence
+    - large language models
+    - agentic
+    - rag
+    - retrieval augmented generation
+    - prompt engineering
+    - transformers
+    - pytorch
+    - tensorflow
+    - experimentation
+    - analytics
+  min_keyword_hits: 2
+  llm_score_threshold: 70
+  llm:
+    provider: deepseek
+    api_style: openai_compatible
+    base_url: https://api.deepseek.com
+    api_key_env: DEEPSEEK_API_KEY
+    model: deepseek-chat
+    response_format: json_object
+    temperature: 0.1
+    timeout_seconds: 60
+    max_output_tokens: 180

@@ -90,3 +90,17 @@ sources:
       - Public vacancy JSON works at https://werk.ah.nl/en/api/vacancy/ when requested with X-Requested-With: XMLHttpRequest
       - Verified runtime filters are Contract Type=Fulltime and Department=Data science from the provided vacancies URL
       - Vacancy detail pages are server-rendered and expose JobPosting JSON-LD for description and posted date
+
+  - id: uber
+    name: Uber
+    careers_url: https://www.uber.com/nl/en/careers/list/?department=Data%20Science&location=NLD--Amsterdam
+    status: skipped
+    extraction_method: unknown
+    scraper_type: none
+    runtime_config: null
+    last_verified: 2026-04-03
+    notes:
+      - The provided Amsterdam plus Data Science search page renders the selected filters in HTML but the results area is only a client-side CCBJobsList container with a loading spinner
+      - The source HTML and decoded Redux state expose filter props and a default query shape, but do not expose actual job cards, job detail URLs, or a confirmed search endpoint
+      - On 2026-04-03 the rendered page text reported no results for the exact provided filter combination
+    blocker: No confirmed non-browser search endpoint for the client-hydrated jobs list

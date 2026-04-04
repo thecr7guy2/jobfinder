@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 data/cache/*.json
+data/resume.md
+.env
+.env.*
