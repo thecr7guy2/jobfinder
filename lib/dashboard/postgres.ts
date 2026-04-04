@@ -22,6 +22,12 @@ type ApplicationRow = {
   updated_by_role: AccessRole;
 };
 
+type ProfileDocumentRow = {
+  document_key: string;
+  content: string;
+  updated_at: Date | string;
+};
+
 let client: Sql | null = null;
 let ensureTablePromise: Promise<void> | null = null;
 
@@ -74,6 +80,13 @@ async function ensureApplicationsTable(): Promise<void> {
           updated_by_role TEXT NOT NULL
         )
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS profile_documents (
+          document_key TEXT PRIMARY KEY,
+          content TEXT NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL
+        )
+      `;
     })();
   }
 
@@ -121,4 +134,29 @@ export async function upsertApplicationRecord(record: ApplicationRecord): Promis
   `;
 
   return toRecord(rows[0]);
+}
+
+export async function readProfileDocument(documentKey: string): Promise<string | null> {
+  await ensureApplicationsTable();
+  const sql = getClient();
+  const rows = await sql<ProfileDocumentRow[]>`
+    SELECT document_key, content, updated_at
+    FROM profile_documents
+    WHERE document_key = ${documentKey}
+    LIMIT 1
+  `;
+
+  return rows[0]?.content ?? null;
+}
+
+export async function upsertProfileDocument(documentKey: string, content: string): Promise<void> {
+  await ensureApplicationsTable();
+  const sql = getClient();
+  await sql`
+    INSERT INTO profile_documents (document_key, content, updated_at)
+    VALUES (${documentKey}, ${content}, ${normalizedIso(new Date())})
+    ON CONFLICT (document_key) DO UPDATE SET
+      content = EXCLUDED.content,
+      updated_at = EXCLUDED.updated_at
+  `;
 }

@@ -24,10 +24,30 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
     tone: "success" | "error";
     message: string;
   } | null>(null);
+  const [coverLetterState, setCoverLetterState] = useState<{
+    status: "idle" | "loading" | "ready";
+    filename: string | null;
+    previewText: string | null;
+    tex: string | null;
+  }>({
+    status: "idle",
+    filename: null,
+    previewText: null,
+    tex: null,
+  });
 
   useEffect(() => {
     setLocalJobs(jobs);
   }, [jobs]);
+
+  useEffect(() => {
+    setCoverLetterState({
+      status: "idle",
+      filename: null,
+      previewText: null,
+      tex: null,
+    });
+  }, [selectedJobId]);
 
   useEffect(() => {
     if (!feedback) {
@@ -58,6 +78,18 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
   }, [company, localJobs, query, status]);
 
   const selectedJob = visibleJobs.find((job) => job.id === selectedJobId) ?? null;
+
+  function downloadCoverLetter(filename: string, tex: string) {
+    const blob = new Blob([tex], { type: "application/x-tex" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
 
   async function updateStatus(jobId: string, nextStatus: ApplicationStatus) {
     if (role !== "owner" || pendingJobId === jobId) {
@@ -133,6 +165,60 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
       });
     } finally {
       setPendingJobId(null);
+    }
+  }
+
+  async function generateCoverLetter(jobId: string) {
+    setCoverLetterState({
+      status: "loading",
+      filename: null,
+      previewText: null,
+      tex: null,
+    });
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/cover-letter/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            error?: string;
+            filename?: string;
+            previewText?: string;
+            tex?: string;
+          }
+        | null;
+
+      if (!response.ok || !payload?.filename || !payload?.tex || !payload?.previewText) {
+        throw new Error(payload?.error || "Failed to generate cover letter.");
+      }
+
+      setCoverLetterState({
+        status: "ready",
+        filename: payload.filename,
+        previewText: payload.previewText,
+        tex: payload.tex,
+      });
+      setFeedback({
+        tone: "success",
+        message: `Generated cover letter for ${selectedJob?.title || "selected job"}.`,
+      });
+      downloadCoverLetter(payload.filename, payload.tex);
+    } catch (error) {
+      setCoverLetterState({
+        status: "idle",
+        filename: null,
+        previewText: null,
+        tex: null,
+      });
+      setFeedback({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Failed to generate cover letter.",
+      });
     }
   }
 
@@ -335,7 +421,52 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
                 <a className="primary-button" href={selectedJob.url} target="_blank" rel="noreferrer">
                   Open source job
                 </a>
+                {role === "owner" ? (
+                  <>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      disabled={coverLetterState.status === "loading"}
+                      onClick={() => generateCoverLetter(selectedJob.id)}
+                    >
+                      {coverLetterState.status === "loading" ? "Generating..." : "Generate cover letter"}
+                    </button>
+                    {coverLetterState.status === "ready" && coverLetterState.filename && coverLetterState.tex ? (
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={() => downloadCoverLetter(coverLetterState.filename!, coverLetterState.tex!)}
+                      >
+                        Download .tex
+                      </button>
+                    ) : null}
+                  </>
+                ) : null}
               </div>
+              {role === "owner" && coverLetterState.status === "ready" && coverLetterState.previewText ? (
+                <div className="stack">
+                  <span className="subtle">Cover letter preview</span>
+                  <div className="description">{coverLetterState.previewText}</div>
+                </div>
+              ) : null}
+              {role === "owner" && coverLetterState.status === "loading" ? (
+                <div className="stack">
+                  <span className="subtle">Cover letter</span>
+                  <div className="description">Generating draft from your resume, prompt instructions, and this job description.</div>
+                </div>
+              ) : null}
+              {role === "owner" && coverLetterState.status === "ready" && coverLetterState.filename ? (
+                <div className="stack">
+                  <span className="subtle">Generated file</span>
+                  <strong>{coverLetterState.filename}</strong>
+                </div>
+              ) : null}
+              {role === "owner" ? (
+                <div className="stack">
+                  <span className="subtle">Cover letter workflow</span>
+                  <div className="description">This v1 generates a LaTeX file for immediate download. PDF compilation with Tectonic can be added next.</div>
+                </div>
+              ) : null}
             </div>
           </aside>
         </div>

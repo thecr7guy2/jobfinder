@@ -14,7 +14,7 @@ Everything is designed to run on GitHub infrastructure: Actions for scheduling, 
 
 ## Current Status
 
-The repository currently implements Phases 1, 2, and 3, with Phase 4 now in progress: job scraping, normalization, cache-backed refresh, DeepSeek-based job matching, Telegram alerting, and a protected dashboard scaffold.
+The repository currently implements Phases 1, 2, 3, and the first slice of Phase 5: job scraping, normalization, cache-backed refresh, DeepSeek-based job matching, Telegram alerting, a protected dashboard, and on-demand LaTeX cover letter generation.
 
 Active sources today:
 - Booking.com
@@ -139,10 +139,11 @@ Planned approach:
 Goal: generate a tailored cover letter when a job is approved.
 
 Planned deliverables:
-- `data/cover_letter_template.md`
-- `generate_cover_letter.py`
-- `cover_letters/*.md`
-- Telegram file delivery for generated letters
+- `data/cover_letter_template.tex`
+- `config/cover_letter_prompt.md`
+- `app/api/cover-letter/generate`
+- downloadable `.tex` generation from the dashboard
+- later: PDF compilation with Tectonic
 
 ### Phase 6 - GitHub Actions Automation
 
@@ -167,12 +168,24 @@ Expected secrets:
 jobfinder/
 ├── config/
 │   ├── companies.yaml
+│   ├── cover_letter_prompt.md
 │   ├── matching.yaml
 │   └── sources.yaml
 ├── data/
 │   ├── cache/
+│   ├── cover_letter_template.tex
 │   ├── jobs.json
 │   └── resume.md
+├── lib/
+│   ├── cover-letter/
+│   └── dashboard/
+├── app/
+│   ├── api/
+│   │   └── cover-letter/
+│   ├── dashboard/
+│   ├── inbox/
+│   ├── login/
+│   └── tracker/
 ├── docs/
 │   └── company_source_onboarding.md
 ├── plans/
@@ -192,13 +205,7 @@ jobfinder/
 ├── dashboard-tests/
 │   ├── auth.test.ts
 │   └── data.test.ts
-├── app/
-│   ├── dashboard/
-│   ├── inbox/
-│   ├── login/
-│   └── tracker/
 ├── components/
-├── lib/
 ├── match_jobs.py
 ├── notify.py
 ├── package.json
@@ -260,7 +267,19 @@ DATABASE_URL=your_postgres_connection_string
 `DEEPSEEK_API_KEY` is used by matching. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
 are used by `notify.py`. `VIEWER_ACCESS_CODE` and `OWNER_ACCESS_CODE` protect the
 dashboard. `DATABASE_URL` or `POSTGRES_URL` is used for owner status write-back
-and persisted application state.
+and persisted application state. `DEEPSEEK_API_KEY` is also used by the dashboard
+cover-letter generation route.
+
+For cover letter generation in production, the dashboard reads the resume from
+Postgres instead of from the local gitignored file. After you configure
+`DATABASE_URL` or `POSTGRES_URL`, sync your local resume once with:
+
+```bash
+pnpm sync:resume
+```
+
+That command uploads [`data/resume.md`](/Users/sai/Documents/Projects/jobfinder/data/resume.md) into the
+`profile_documents` table under the `resume_markdown` key.
 
 If you prefer exporting the current required key directly:
 

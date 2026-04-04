@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A personal job discovery and application tracking system. It continuously monitors career pages of target companies, scores open roles against a resume using a cheap LLM, sends Telegram alerts for strong matches, and provides a GitHub Pages dashboard to review jobs, track applications, and generate cover letters.
+A personal job discovery and application tracking system. It continuously monitors career pages of target companies, scores open roles against a resume using a cheap LLM, sends Telegram alerts for strong matches, and provides a protected Vercel dashboard to review jobs, track applications, and generate cover letters.
 
-Everything runs on GitHub infrastructure: Actions for scheduling, Pages for the frontend, the repo itself as the database.
+The current implementation runs across GitHub and Vercel infrastructure: GitHub for the repo and planned automation, Vercel for the dashboard frontend, and Postgres for dashboard-owned application state.
 
 ---
 
@@ -32,9 +32,9 @@ match_jobs.py  ──(staged filter)──►  LLM score (only shortlisted)
 Telegram alert  (score ≥ threshold)
      │
      ▼
-GitHub Pages dashboard
+Vercel dashboard
      │
-     ├── Review job → Apply / Skip
+     ├── Review job → status update in Postgres
      │
      ├── Generate cover letter  →  cover_letters/{company}-{role}-{date}.md
      │                             + Telegram file delivery
@@ -102,22 +102,23 @@ Notify via Telegram when a job scores above threshold.
 
 ---
 
-### Phase 4 — GitHub Pages Dashboard
-Static site showing all jobs, their scores, and current application status.
+### Phase 4 — Vercel Dashboard
+Protected Next.js dashboard showing all jobs, their scores, and current application status.
 
 **Pages/Views:**
 - **Inbox** — new high-match jobs pending a decision (Apply / Skip buttons)
 - **Tracker** — all jobs with current status, sortable/filterable
 - **Dashboard** — stats: total discovered, applied, response rate, funnel breakdown
 
-**How actions work (static site problem solved):**
-- Dashboard loads `data/jobs.json` directly from the repo (raw GitHub URL)
-- Apply / Skip buttons call the GitHub API (PUT request) to update `jobs.json` using a Personal Access Token stored in browser `localStorage`
-- GitHub Actions detects the commit and redeploys Pages
+**How actions work:**
+- Dashboard reads `data/jobs.json` server-side
+- Review and application status are stored in Postgres, not in `jobs.json`
+- Owner actions call protected server routes
+- Vercel deploys the dashboard; dashboard status changes do not trigger code deploys
 
-**Tech:** Plain HTML + vanilla JS + Chart.js for stats. No framework, no build step.
+**Tech:** Next.js App Router + TypeScript on Vercel, with Postgres-backed application state.
 
-**Done when:** Can open the site, see matched jobs, click Apply → state updates in repo.
+**Done when:** Can open the site, see matched jobs, click Apply → state updates persist in Postgres.
 
 ---
 
@@ -131,7 +132,7 @@ Generate a tailored cover letter when a job is approved.
 - Cover letter also sent as a file to Telegram for immediate access
 - Prompt explicitly instructs: use only facts from resume, do not invent experience
 
-**Trigger:** Approval action on dashboard → GitHub Actions `workflow_dispatch` → generates and commits cover letter.
+**Trigger:** Approval action on dashboard → server-side trigger or GitHub Actions `workflow_dispatch` → generates and commits cover letter.
 
 **Done when:** Click Apply on dashboard → cover letter appears in Telegram within 2 minutes.
 
@@ -145,7 +146,7 @@ Wire everything together so it runs on a schedule without manual intervention.
 |---|---|---|
 | `scrape.yml` | Schedule (every 8h) + manual | fetch_jobs.py + match_jobs.py + notify.py |
 | `cover_letter.yml` | workflow_dispatch (job_id param) | generate_cover_letter.py + commit + Telegram |
-| `deploy.yml` | Push to main | Build and deploy GitHub Pages |
+| `deploy.yml` | Push to main | Build and deploy Vercel dashboard or related frontend assets |
 
 **Secrets needed:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DEEPSEEK_API_KEY`, `VIEWER_ACCESS_CODE`, `OWNER_ACCESS_CODE`, and `DATABASE_URL` or `POSTGRES_URL` (for dashboard write-back)
 
@@ -160,11 +161,12 @@ Wire everything together so it runs on a schedule without manual intervention.
 | Scraping | `requests` + `BeautifulSoup` | Sufficient for static HTML and APIs |
 | JS-rendered | none | Browser-only sources are intentionally skipped |
 | Matching LLM | DeepSeek Chat | Implemented hosted LLM for Phase 2 scoring |
-| State storage | JSON files in repo | No external DB, GitHub-native, simple |
-| Frontend | HTML + vanilla JS | No build step, works with GitHub Pages |
-| Charts | Chart.js (CDN) | Lightweight, no install |
-| Telegram | raw `requests` to Bot API | Planned simple API integration for alerts |
-| CI/CD | GitHub Actions | Free for public repos, native scheduling |
+| Job data storage | JSON files in repo | Simple source-of-truth for scraped and matched jobs |
+| Application state | Postgres | Fast writes for dashboard review/application state |
+| Frontend | Next.js App Router + TypeScript | Protected dashboard, server routes, Vercel-native |
+| Charts | CSS-based bars / dashboard UI | Lightweight and already implemented |
+| Telegram | raw `requests` to Bot API | Implemented simple API integration for alerts |
+| CI/CD | GitHub Actions + Vercel | Scheduled jobs on GitHub, dashboard hosting on Vercel |
 | Config | YAML | Human-readable, easy to add companies |
 
 ---
@@ -178,7 +180,7 @@ Wire everything together so it runs on a schedule without manual intervention.
 | `data/resume.md` | Resume used for matching |
 | `data/cover_letter_template.md` | Cover letter template with placeholders |
 | `data/jobs.json` | All discovered jobs, normalized + scored |
-| `data/applications.json` | Phase 4 planned file for user decisions + status history |
+| `data/applications.json` | Local fallback only when dashboard Postgres is not configured |
 | `data/cache/{company_id}.json` | Raw cached scrape per company |
 | `cover_letters/*.md` | Generated cover letters |
 
@@ -265,7 +267,8 @@ discovered
 |---|---|
 | DeepSeek API | Usage-based |
 | GitHub Actions (public repo) | Free |
-| GitHub Pages | Free |
+| Vercel | Free to low-cost, depending on usage |
+| Neon / Postgres | Free to low-cost, depending on usage |
 | Telegram Bot API | Free |
 | **Total** | **Low, usage-dependent** |
 
@@ -274,13 +277,13 @@ discovered
 ## Repo Visibility Decision
 
 - **Private repo** recommended — resume and cover letters should not be public
-- GitHub Pages works on private repos with GitHub Pro ($4/month) OR use Cloudflare Pages (free, supports private repos)
-- Alternative: keep repo private, deploy Pages via GitHub Actions to a separate public `gh-pages` branch with only the static site (no raw data files)
+- Vercel works cleanly with a private repo and matches the current dashboard architecture
+- If a public read-only dashboard is wanted later, build that separately instead of forcing the main app onto static hosting
 
 ---
 
 ## Open Questions
 
 - [ ] Which other companies should be added beyond the current active set?
-- [ ] Repo public or private? (affects Pages hosting strategy)
+- [ ] Repo public or private? (affects automation and any future public dashboard variant)
 - [ ] Cover letter delivery: Telegram file message, or just commit to repo?
