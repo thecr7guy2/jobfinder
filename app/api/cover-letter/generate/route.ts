@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSessionRole } from "@/lib/dashboard/auth";
 import { findJobById, generateCoverLetter } from "@/lib/cover-letter/generate";
+import { saveGeneratedCoverLetter } from "@/lib/cover-letter/storage";
 
 export async function POST(request: Request) {
   const role = await getSessionRole();
@@ -22,7 +23,14 @@ export async function POST(request: Request) {
     }
 
     const letter = await generateCoverLetter(job);
-    return NextResponse.json({ ok: true, ...letter });
+    const saved = await saveGeneratedCoverLetter(job.id, letter);
+
+    return NextResponse.json({
+      ok: true,
+      ...letter,
+      savedPath: saved.savedPath,
+      savedMode: saved.mode,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate cover letter." },

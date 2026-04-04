@@ -8,4 +8,5 @@ export type GeneratedCoverLetter = {
   filename: string;
   tex: string;
   previewText: string;
+  savedPath?: string | null;
 };

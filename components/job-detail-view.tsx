@@ -23,11 +23,15 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
   const [coverLetterState, setCoverLetterState] = useState<{
     status: "idle" | "loading" | "ready";
     filename: string | null;
+    savedPath: string | null;
+    savedMode: "postgres" | "local" | "none" | null;
     previewText: string | null;
     tex: string | null;
   }>({
     status: "idle",
     filename: null,
+    savedPath: null,
+    savedMode: null,
     previewText: null,
     tex: null,
   });
@@ -110,6 +114,8 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
     setCoverLetterState({
       status: "loading",
       filename: null,
+      savedPath: null,
+      savedMode: null,
       previewText: null,
       tex: null,
     });
@@ -122,7 +128,14 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
         body: JSON.stringify({ jobId: localJob.id }),
       });
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string; filename?: string; previewText?: string; tex?: string }
+        | {
+            error?: string;
+            filename?: string;
+            previewText?: string;
+            tex?: string;
+            savedPath?: string | null;
+            savedMode?: "postgres" | "local" | "none";
+          }
         | null;
 
       if (!response.ok || !payload?.filename || !payload?.tex || !payload?.previewText) {
@@ -132,18 +145,27 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
       setCoverLetterState({
         status: "ready",
         filename: payload.filename,
+        savedPath: payload.savedPath ?? null,
+        savedMode: payload.savedMode ?? null,
         previewText: payload.previewText,
         tex: payload.tex,
       });
       setFeedback({
         tone: "success",
-        message: `Generated cover letter for ${localJob.title}.`,
+        message:
+          payload.savedMode === "postgres"
+            ? `Generated and stored cover letter for ${localJob.title}.`
+            : payload.savedPath
+              ? `Generated and saved cover letter for ${localJob.title}.`
+              : `Generated cover letter for ${localJob.title}.`,
       });
       downloadCoverLetter(payload.filename, payload.tex);
     } catch (error) {
       setCoverLetterState({
         status: "idle",
         filename: null,
+        savedPath: null,
+        savedMode: null,
         previewText: null,
         tex: null,
       });
@@ -282,8 +304,19 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
             </div>
             {role === "owner" && coverLetterState.status === "ready" && coverLetterState.filename ? (
               <div className="stack">
-                <span className="subtle">Generated file</span>
+                <span className="subtle">
+                  {coverLetterState.savedMode === "postgres"
+                    ? "Stored record"
+                    : coverLetterState.savedPath
+                      ? "Saved file"
+                      : "Generated file"}
+                </span>
                 <strong>{coverLetterState.filename}</strong>
+                {coverLetterState.savedMode === "postgres" ? (
+                  <span className="subtle">Stored in Postgres</span>
+                ) : coverLetterState.savedPath ? (
+                  <span className="subtle">{coverLetterState.savedPath}</span>
+                ) : null}
               </div>
             ) : null}
           </div>

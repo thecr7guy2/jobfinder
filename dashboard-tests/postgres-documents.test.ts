@@ -18,6 +18,7 @@ describe("postgres document storage", () => {
     sqlTag
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           document_key: "resume_markdown",
@@ -32,11 +33,70 @@ describe("postgres document storage", () => {
   });
 
   it("upserts a profile document into postgres", async () => {
-    sqlTag.mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
 
     const { upsertProfileDocument } = await import("@/lib/dashboard/postgres");
 
     await expect(upsertProfileDocument("resume_markdown", "# Resume")).resolves.toBeUndefined();
-    expect(sqlTag).toHaveBeenCalledTimes(3);
+    expect(sqlTag).toHaveBeenCalledTimes(4);
+  });
+
+  it("reads a generated cover letter from postgres", async () => {
+    sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          job_id: "job-1",
+          filename: "example-letter.tex",
+          tex: "\\documentclass{article}",
+          preview_text: "Preview",
+          updated_at: "2026-04-04T12:00:00Z",
+        },
+      ]);
+
+    const { readCoverLetterRecord } = await import("@/lib/dashboard/postgres");
+
+    await expect(readCoverLetterRecord("job-1")).resolves.toEqual({
+      job_id: "job-1",
+      filename: "example-letter.tex",
+      tex: "\\documentclass{article}",
+      preview_text: "Preview",
+      updated_at: "2026-04-04T12:00:00Z",
+    });
+  });
+
+  it("upserts a generated cover letter into postgres", async () => {
+    sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          job_id: "job-1",
+          filename: "example-letter.tex",
+          tex: "\\documentclass{article}",
+          preview_text: "Preview",
+          updated_at: "2026-04-04T12:00:00Z",
+        },
+      ]);
+
+    const { upsertCoverLetterRecord } = await import("@/lib/dashboard/postgres");
+
+    await expect(
+      upsertCoverLetterRecord("job-1", "example-letter.tex", "\\documentclass{article}", "Preview"),
+    ).resolves.toEqual({
+      job_id: "job-1",
+      filename: "example-letter.tex",
+      tex: "\\documentclass{article}",
+      preview_text: "Preview",
+      updated_at: "2026-04-04T12:00:00Z",
+    });
+    expect(sqlTag).toHaveBeenCalledTimes(4);
   });
 });

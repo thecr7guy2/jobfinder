@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getSessionRole: vi.fn(),
   findJobById: vi.fn(),
   generateCoverLetter: vi.fn(),
+  saveGeneratedCoverLetter: vi.fn(),
 }));
 
 vi.mock("@/lib/dashboard/auth", () => ({
@@ -15,11 +16,19 @@ vi.mock("@/lib/cover-letter/generate", () => ({
   generateCoverLetter: mocks.generateCoverLetter,
 }));
 
+vi.mock("@/lib/cover-letter/storage", () => ({
+  saveGeneratedCoverLetter: mocks.saveGeneratedCoverLetter,
+}));
+
 import { POST } from "@/app/api/cover-letter/generate/route";
 
 describe("cover letter generate route", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.saveGeneratedCoverLetter.mockResolvedValue({
+      savedPath: null,
+      mode: "postgres",
+    });
   });
 
   it("requires authenticated access", async () => {
@@ -106,6 +115,8 @@ describe("cover letter generate route", () => {
       filename: "booking-com-senior-ml-engineer-2026-04-04.tex",
       tex: "\\documentclass{letter}",
       previewText: "Paragraph one.\n\nParagraph two.",
+      savedPath: null,
+      savedMode: "postgres",
     });
   });
 });

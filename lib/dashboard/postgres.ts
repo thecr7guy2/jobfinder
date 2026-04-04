@@ -28,6 +28,22 @@ type ProfileDocumentRow = {
   updated_at: Date | string;
 };
 
+type CoverLetterRow = {
+  job_id: string;
+  filename: string;
+  tex: string;
+  preview_text: string;
+  updated_at: Date | string;
+};
+
+export type CoverLetterRecord = {
+  job_id: string;
+  filename: string;
+  tex: string;
+  preview_text: string;
+  updated_at: string;
+};
+
 let client: Sql | null = null;
 let ensureTablePromise: Promise<void> | null = null;
 
@@ -84,6 +100,15 @@ async function ensureApplicationsTable(): Promise<void> {
         CREATE TABLE IF NOT EXISTS profile_documents (
           document_key TEXT PRIMARY KEY,
           content TEXT NOT NULL,
+          updated_at TIMESTAMPTZ NOT NULL
+        )
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS cover_letters (
+          job_id TEXT PRIMARY KEY,
+          filename TEXT NOT NULL,
+          tex TEXT NOT NULL,
+          preview_text TEXT NOT NULL,
           updated_at TIMESTAMPTZ NOT NULL
         )
       `;
@@ -159,4 +184,49 @@ export async function upsertProfileDocument(documentKey: string, content: string
       content = EXCLUDED.content,
       updated_at = EXCLUDED.updated_at
   `;
+}
+
+function toCoverLetterRecord(row: CoverLetterRow): CoverLetterRecord {
+  return {
+    job_id: row.job_id,
+    filename: row.filename,
+    tex: row.tex,
+    preview_text: row.preview_text,
+    updated_at: normalizedIso(row.updated_at),
+  };
+}
+
+export async function readCoverLetterRecord(jobId: string): Promise<CoverLetterRecord | null> {
+  await ensureApplicationsTable();
+  const sql = getClient();
+  const rows = await sql<CoverLetterRow[]>`
+    SELECT job_id, filename, tex, preview_text, updated_at
+    FROM cover_letters
+    WHERE job_id = ${jobId}
+    LIMIT 1
+  `;
+
+  return rows[0] ? toCoverLetterRecord(rows[0]) : null;
+}
+
+export async function upsertCoverLetterRecord(
+  jobId: string,
+  filename: string,
+  tex: string,
+  previewText: string,
+): Promise<CoverLetterRecord> {
+  await ensureApplicationsTable();
+  const sql = getClient();
+  const rows = await sql<CoverLetterRow[]>`
+    INSERT INTO cover_letters (job_id, filename, tex, preview_text, updated_at)
+    VALUES (${jobId}, ${filename}, ${tex}, ${previewText}, ${normalizedIso(new Date())})
+    ON CONFLICT (job_id) DO UPDATE SET
+      filename = EXCLUDED.filename,
+      tex = EXCLUDED.tex,
+      preview_text = EXCLUDED.preview_text,
+      updated_at = EXCLUDED.updated_at
+    RETURNING job_id, filename, tex, preview_text, updated_at
+  `;
+
+  return toCoverLetterRecord(rows[0]);
 }
