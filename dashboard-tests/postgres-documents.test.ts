@@ -19,6 +19,9 @@ describe("postgres document storage", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           document_key: "resume_markdown",
@@ -37,16 +40,22 @@ describe("postgres document storage", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
     const { upsertProfileDocument } = await import("@/lib/dashboard/postgres");
 
     await expect(upsertProfileDocument("resume_markdown", "# Resume")).resolves.toBeUndefined();
-    expect(sqlTag).toHaveBeenCalledTimes(4);
+    expect(sqlTag).toHaveBeenCalledTimes(7);
   });
 
   it("reads a generated cover letter from postgres", async () => {
     sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -57,6 +66,9 @@ describe("postgres document storage", () => {
           tex: "\\documentclass{article}",
           preview_text: "Preview",
           updated_at: "2026-04-04T12:00:00Z",
+          pdf_filename: "example-letter.pdf",
+          pdf_data: new Uint8Array([1, 2, 3]),
+          pdf_updated_at: "2026-04-04T13:00:00Z",
         },
       ]);
 
@@ -68,11 +80,17 @@ describe("postgres document storage", () => {
       tex: "\\documentclass{article}",
       preview_text: "Preview",
       updated_at: "2026-04-04T12:00:00Z",
+      pdf_filename: "example-letter.pdf",
+      pdf_data: new Uint8Array([1, 2, 3]),
+      pdf_updated_at: "2026-04-04T13:00:00Z",
     });
   });
 
   it("upserts a generated cover letter into postgres", async () => {
     sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -83,6 +101,9 @@ describe("postgres document storage", () => {
           tex: "\\documentclass{article}",
           preview_text: "Preview",
           updated_at: "2026-04-04T12:00:00Z",
+          pdf_filename: null,
+          pdf_data: null,
+          pdf_updated_at: null,
         },
       ]);
 
@@ -96,7 +117,48 @@ describe("postgres document storage", () => {
       tex: "\\documentclass{article}",
       preview_text: "Preview",
       updated_at: "2026-04-04T12:00:00Z",
+      pdf_filename: null,
+      pdf_data: null,
+      pdf_updated_at: null,
     });
-    expect(sqlTag).toHaveBeenCalledTimes(4);
+    expect(sqlTag).toHaveBeenCalledTimes(7);
+  });
+
+  it("stores a compiled cover letter pdf in postgres", async () => {
+    sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          job_id: "job-1",
+          filename: "example-letter.tex",
+          tex: "\\documentclass{article}",
+          preview_text: "Preview",
+          updated_at: "2026-04-04T12:00:00Z",
+          pdf_filename: "example-letter.pdf",
+          pdf_data: new Uint8Array([1, 2, 3]),
+          pdf_updated_at: "2026-04-04T13:00:00Z",
+        },
+      ]);
+
+    const { upsertCoverLetterPdfRecord } = await import("@/lib/dashboard/postgres");
+
+    await expect(
+      upsertCoverLetterPdfRecord("job-1", "example-letter.pdf", new Uint8Array([1, 2, 3])),
+    ).resolves.toEqual({
+      job_id: "job-1",
+      filename: "example-letter.tex",
+      tex: "\\documentclass{article}",
+      preview_text: "Preview",
+      updated_at: "2026-04-04T12:00:00Z",
+      pdf_filename: "example-letter.pdf",
+      pdf_data: new Uint8Array([1, 2, 3]),
+      pdf_updated_at: "2026-04-04T13:00:00Z",
+    });
+    expect(sqlTag).toHaveBeenCalledTimes(7);
   });
 });

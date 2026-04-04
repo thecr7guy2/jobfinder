@@ -61,6 +61,22 @@ async function fetchCoverLetter(sql, jobId) {
   return rows[0] || null;
 }
 
+async function storeCompiledPdf(sql, jobId, pdfFilename, pdfData) {
+  const rows = await sql`
+    UPDATE cover_letters
+    SET
+      pdf_filename = ${pdfFilename},
+      pdf_data = ${pdfData},
+      pdf_updated_at = NOW()
+    WHERE job_id = ${jobId}
+    RETURNING job_id
+  `;
+
+  if (!rows[0]) {
+    throw new Error(`No stored cover letter found for job id: ${jobId}`);
+  }
+}
+
 async function runTectonic(texPath, outDir) {
   await new Promise((resolve, reject) => {
     const child = spawn("tectonic", ["--outdir", outDir, texPath], {
@@ -110,7 +126,8 @@ async function main() {
 
     const pdfName = pdfFilenameFromTex(letter.filename);
     const pdfPath = path.join(outDir, pdfName);
-    await readFile(pdfPath);
+    const pdfData = await readFile(pdfPath);
+    await storeCompiledPdf(sql, jobId, pdfName, pdfData);
 
     process.stdout.write(`${pdfPath}\n`);
   } finally {

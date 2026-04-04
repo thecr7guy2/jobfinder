@@ -6,38 +6,40 @@ import { useEffect, useState } from "react";
 import type { AccessRole, ApplicationStatus, DashboardJob } from "@/lib/dashboard/types";
 import { APPLICATION_STATUSES } from "@/lib/dashboard/constants";
 
+type CoverLetterViewState = {
+  status: "idle" | "loading" | "ready";
+  filename: string | null;
+  savedPath: string | null;
+  savedMode: "postgres" | "local" | "none" | null;
+  previewText: string | null;
+  hasPdf: boolean;
+};
+
 type JobDetailViewProps = {
   job: DashboardJob;
   role: AccessRole;
   backHref: string;
   backLabel: string;
+  initialCoverLetter: CoverLetterViewState;
 };
 
-export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewProps) {
+export function JobDetailView({ job, role, backHref, backLabel, initialCoverLetter }: JobDetailViewProps) {
   const [localJob, setLocalJob] = useState(job);
   const [pendingStatus, setPendingStatus] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
     message: string;
   } | null>(null);
-  const [coverLetterState, setCoverLetterState] = useState<{
-    status: "idle" | "loading" | "ready";
-    filename: string | null;
-    savedPath: string | null;
-    savedMode: "postgres" | "local" | "none" | null;
-    previewText: string | null;
-  }>({
-    status: "idle",
-    filename: null,
-    savedPath: null,
-    savedMode: null,
-    previewText: null,
-  });
+  const [coverLetterState, setCoverLetterState] = useState<CoverLetterViewState>(initialCoverLetter);
   const [pendingPdf, setPendingPdf] = useState(false);
 
   useEffect(() => {
     setLocalJob(job);
   }, [job]);
+
+  useEffect(() => {
+    setCoverLetterState(initialCoverLetter);
+  }, [initialCoverLetter]);
 
   useEffect(() => {
     if (!feedback) {
@@ -104,6 +106,7 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
       savedPath: null,
       savedMode: null,
       previewText: null,
+      hasPdf: false,
     });
     setFeedback(null);
 
@@ -133,6 +136,7 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
         savedPath: payload.savedPath ?? null,
         savedMode: payload.savedMode ?? null,
         previewText: payload.previewText,
+        hasPdf: false,
       });
       setFeedback({
         tone: "success",
@@ -150,6 +154,7 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
         savedPath: null,
         savedMode: null,
         previewText: null,
+        hasPdf: false,
       });
       setFeedback({
         tone: "error",
@@ -182,7 +187,7 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
 
       setFeedback({
         tone: "success",
-        message: "Triggered PDF compilation workflow in GitHub Actions.",
+        message: "Triggered PDF compilation workflow in GitHub Actions. Refresh after it finishes to download the PDF.",
       });
       window.open(payload.runUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
@@ -285,6 +290,14 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
                   {pendingPdf ? "Triggering PDF..." : "Compile PDF"}
                 </button>
               ) : null}
+              {role === "owner" && coverLetterState.status === "ready" && coverLetterState.hasPdf ? (
+                <a
+                  className="secondary-button"
+                  href={`/api/cover-letter/pdf?jobId=${encodeURIComponent(localJob.id)}`}
+                >
+                  Download PDF
+                </a>
+              ) : null}
             </div>
           </div>
         </section>
@@ -336,6 +349,9 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
                   <span className="subtle">Stored in Postgres</span>
                 ) : coverLetterState.savedPath ? (
                   <span className="subtle">{coverLetterState.savedPath}</span>
+                ) : null}
+                {coverLetterState.hasPdf ? (
+                  <span className="subtle">Compiled PDF available</span>
                 ) : null}
               </div>
             ) : null}
