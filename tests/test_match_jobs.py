@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
 from match_jobs import (
     build_input_hash,
     extract_json_object,
     keyword_hits,
+    load_resume_text,
     location_match,
     parse_llm_result,
     should_score_job,
@@ -84,6 +86,34 @@ class MatchJobsTests(unittest.TestCase):
         score, rationale = parse_llm_result("{\"score\": 140, \"rationale\": \"Very strong fit.\"}")
         self.assertEqual(100, score)
         self.assertEqual("Very strong fit.", rationale)
+
+    def test_load_resume_text_reads_from_postgres_when_configured(self) -> None:
+        fake_cursor = mock.MagicMock()
+        fake_cursor.fetchone.return_value = ("# Resume\nPython and ML",)
+        fake_connection = mock.MagicMock()
+        fake_connection.__enter__.return_value = fake_connection
+        fake_connection.cursor.return_value.__enter__.return_value = fake_cursor
+
+        with mock.patch("match_jobs.psycopg", new=mock.Mock(connect=mock.Mock(return_value=fake_connection))):
+            with mock.patch.dict("os.environ", {"DATABASE_URL": "postgres://example"}, clear=False):
+                self.assertEqual("# Resume\nPython and ML", load_resume_text())
+                fake_cursor.execute.assert_called_once()
+
+    def test_load_resume_text_falls_back_to_file_when_database_has_no_resume(self) -> None:
+        fake_cursor = mock.MagicMock()
+        fake_cursor.fetchone.return_value = None
+        fake_connection = mock.MagicMock()
+        fake_connection.__enter__.return_value = fake_connection
+        fake_connection.cursor.return_value.__enter__.return_value = fake_cursor
+        fake_resume_path = mock.Mock()
+        fake_resume_path.exists.return_value = True
+        fake_resume_path.read_text.return_value = "# Resume\nPython and ML"
+
+        with mock.patch("match_jobs.psycopg", new=mock.Mock(connect=mock.Mock(return_value=fake_connection))):
+            with mock.patch.dict("os.environ", {"DATABASE_URL": "postgres://example"}, clear=False):
+                with mock.patch("match_jobs.RESUME_MARKDOWN_PATH", fake_resume_path):
+                    self.assertEqual("# Resume\nPython and ML", load_resume_text())
+                    fake_resume_path.read_text.assert_called_once_with(encoding="utf-8")
 
 
 if __name__ == "__main__":

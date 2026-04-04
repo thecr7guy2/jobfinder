@@ -26,14 +26,12 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
     savedPath: string | null;
     savedMode: "postgres" | "local" | "none" | null;
     previewText: string | null;
-    tex: string | null;
   }>({
     status: "idle",
     filename: null,
     savedPath: null,
     savedMode: null,
     previewText: null,
-    tex: null,
   });
 
   useEffect(() => {
@@ -48,18 +46,6 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
     const timeout = window.setTimeout(() => setFeedback(null), 2400);
     return () => window.clearTimeout(timeout);
   }, [feedback]);
-
-  function downloadCoverLetter(filename: string, tex: string) {
-    const blob = new Blob([tex], { type: "application/x-tex" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-  }
 
   async function updateStatus(nextStatus: ApplicationStatus) {
     if (role !== "owner" || pendingStatus || localJob.applicationStatus === nextStatus) {
@@ -117,7 +103,6 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
       savedPath: null,
       savedMode: null,
       previewText: null,
-      tex: null,
     });
     setFeedback(null);
 
@@ -132,13 +117,12 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
             error?: string;
             filename?: string;
             previewText?: string;
-            tex?: string;
             savedPath?: string | null;
             savedMode?: "postgres" | "local" | "none";
           }
         | null;
 
-      if (!response.ok || !payload?.filename || !payload?.tex || !payload?.previewText) {
+      if (!response.ok || !payload?.filename || !payload?.previewText) {
         throw new Error(payload?.error || "Failed to generate cover letter.");
       }
 
@@ -148,7 +132,6 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
         savedPath: payload.savedPath ?? null,
         savedMode: payload.savedMode ?? null,
         previewText: payload.previewText,
-        tex: payload.tex,
       });
       setFeedback({
         tone: "success",
@@ -159,7 +142,6 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
               ? `Generated and saved cover letter for ${localJob.title}.`
               : `Generated cover letter for ${localJob.title}.`,
       });
-      downloadCoverLetter(payload.filename, payload.tex);
     } catch (error) {
       setCoverLetterState({
         status: "idle",
@@ -167,7 +149,6 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
         savedPath: null,
         savedMode: null,
         previewText: null,
-        tex: null,
       });
       setFeedback({
         tone: "error",
@@ -254,15 +235,6 @@ export function JobDetailView({ job, role, backHref, backLabel }: JobDetailViewP
                   onClick={generateCoverLetter}
                 >
                   {coverLetterState.status === "loading" ? "Generating..." : "Generate cover letter"}
-                </button>
-              ) : null}
-              {role === "owner" && coverLetterState.status === "ready" && coverLetterState.filename && coverLetterState.tex ? (
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => downloadCoverLetter(coverLetterState.filename!, coverLetterState.tex!)}
-                >
-                  Download .tex
                 </button>
               ) : null}
             </div>

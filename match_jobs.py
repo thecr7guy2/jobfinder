@@ -11,6 +11,11 @@ from typing import Any
 import requests
 import yaml
 
+try:
+    import psycopg
+except ImportError:  # pragma: no cover - dependency is installed in normal runtime
+    psycopg = None
+
 from scrapers.base import clean_text, utcnow_iso
 
 ROOT = Path(__file__).resolve().parent
@@ -41,6 +46,16 @@ TITLE_STOPWORDS = {
     "the",
     "track",
 }
+
+
+def resolve_database_url() -> str | None:
+    return (
+        os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("POSTGRES_URL_NON_POOLING")
+        or os.getenv("NEON_DATABASE_URL")
+        or None
+    )
 
 
 def load_dotenv(path: Path) -> None:
@@ -97,10 +112,34 @@ def write_jobs_store(jobs: list[dict[str, Any]]) -> None:
 
 
 def load_resume_text() -> str:
+    database_url = resolve_database_url()
+    if database_url:
+        if psycopg is None:
+            raise SystemExit("psycopg is required to read the resume from Postgres.")
+
+        with psycopg.connect(database_url) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT content
+                    FROM profile_documents
+                    WHERE document_key = 'resume_markdown'
+                    LIMIT 1
+                    """
+                )
+                row = cursor.fetchone()
+
+        stored_resume = row[0] if row else ""
+
+        resume_text = clean_text(str(stored_resume or ""))
+        if resume_text:
+            return resume_text
+
     resume_path = RESUME_MARKDOWN_PATH if RESUME_MARKDOWN_PATH.exists() else RESUME_TEXT_PATH
     if not resume_path.exists():
         raise SystemExit(
-            f"Missing resume file at {RESUME_MARKDOWN_PATH} or {RESUME_TEXT_PATH}."
+            "Missing resume input. Sync the resume into Postgres or create "
+            f"{RESUME_MARKDOWN_PATH} / {RESUME_TEXT_PATH}."
         )
 
     resume_text = clean_text(resume_path.read_text(encoding="utf-8"))
