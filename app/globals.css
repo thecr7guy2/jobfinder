@@ -345,6 +345,10 @@ button, input, select, textarea {
   border: 1px solid var(--border);
 }
 
+.mobile-jobs {
+  display: none;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -419,6 +423,62 @@ tbody tr:hover {
 .subtle {
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.mobile-job-card {
+  background: rgba(255, 252, 247, 0.96);
+  border: 1px solid rgba(31, 36, 29, 0.08);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 10px 26px rgba(36, 31, 16, 0.06);
+}
+
+.mobile-job-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-job-heading {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mobile-job-company {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.mobile-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.mobile-meta-item {
+  display: grid;
+  gap: 4px;
+}
+
+.mobile-meta-item strong {
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.mobile-job-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.mobile-detail-button {
+  justify-content: center;
 }
 
 /* ─── Pills ───────────────────────────────────────────────────────── */
@@ -745,9 +805,24 @@ tbody tr:hover {
     border-radius: 24px;
   }
 
-  .header,
+  .header {
+    padding: 18px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .content {
     padding: 18px;
+  }
+
+  .brand {
+    width: 100%;
+  }
+
+  .nav {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
   }
 
   .drawer-backdrop {
@@ -756,5 +831,203 @@ tbody tr:hover {
 
   .drawer {
     border-radius: 24px;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 0;
+  }
+
+  .frame {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    min-height: 100vh;
+  }
+
+  .header {
+    gap: 14px;
+    padding: 16px 16px 14px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .brand-text h1 {
+    font-size: 1.05rem;
+  }
+
+  .brand-text p {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .nav a,
+  .nav button,
+  .role-chip {
+    font-size: 0.8rem;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  .hero {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .hero h2 {
+    font-size: clamp(1.65rem, 10vw, 2.4rem);
+    line-height: 1;
+  }
+
+  .hero p {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card,
+  .panel,
+  .login-card {
+    border-radius: 22px;
+  }
+
+  .stat-card {
+    padding: 18px;
+  }
+
+  .stat-card strong {
+    font-size: 2rem;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .mobile-jobs {
+    display: grid;
+    gap: 12px;
+  }
+
+  .drawer-backdrop {
+    align-items: flex-end;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .drawer {
+    width: 100%;
+    height: min(88vh, 100%);
+    border-radius: 24px 24px 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .drawer-header,
+  .drawer-body {
+    padding: 18px 16px;
+  }
+
+  .drawer-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .login-shell {
+    padding: 0;
+  }
+
+  .login-card {
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .login-card h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header,
+  .content {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .nav {
+    gap: 6px;
+  }
+
+  .nav a,
+  .nav button {
+    padding: 8px 12px;
+  }
+
+  .mobile-job-card {
+    padding: 14px;
+  }
+
+  .mobile-job-top {
+    flex-direction: column;
+  }
+
+  .mobile-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .mobile-job-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mobile-job-actions .status-select,
+  .mobile-detail-button {
+    width: 100%;
+  }
+
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primary-button,
+  .secondary-button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .drawer-header {
+    gap: 12px;
   }
 }

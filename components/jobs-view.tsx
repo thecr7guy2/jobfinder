@@ -112,7 +112,7 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
           </select>
         </div>
 
-        <div className="table-shell">
+        <div className="table-shell desktop-table">
           <table>
             <thead>
               <tr>
@@ -163,6 +163,61 @@ export function JobsView({ title, subtitle, jobs, role, mode }: JobsViewProps) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="mobile-jobs" aria-label="Mobile jobs list">
+          {visibleJobs.map((job) => (
+            <article className="mobile-job-card" key={job.id}>
+              <div className="mobile-job-top">
+                <div className="mobile-job-heading">
+                  <button className="title-button" type="button" onClick={() => setSelectedJobId(job.id)}>
+                    <strong>{job.title}</strong>
+                    <span className="source-label">{job.source}</span>
+                  </button>
+                  <div className="mobile-job-company">{job.companyName}</div>
+                </div>
+                <span className="score-pill">{job.score ?? "N/A"}</span>
+              </div>
+
+              <div className="mobile-meta-grid">
+                <div className="mobile-meta-item">
+                  <span className="subtle">Location</span>
+                  <strong>{job.location}</strong>
+                </div>
+                <div className="mobile-meta-item">
+                  <span className="subtle">Alerted</span>
+                  <strong>{job.alerted ? "Yes" : "No"}</strong>
+                </div>
+                <div className="mobile-meta-item">
+                  <span className="subtle">Updated</span>
+                  <strong>{job.applicationUpdatedAt ? new Date(job.applicationUpdatedAt).toLocaleDateString() : "Not updated"}</strong>
+                </div>
+              </div>
+
+              <div className="mobile-job-actions">
+                {role === "owner" ? (
+                  <select
+                    className="status-select"
+                    value={job.applicationStatus}
+                    disabled={isPending}
+                    onChange={(event) => updateStatus(job.id, event.target.value as ApplicationStatus)}
+                  >
+                    {APPLICATION_STATUSES.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className={`status-pill status-${job.applicationStatus}`}>{job.applicationStatus}</span>
+                )}
+
+                <button className="secondary-button mobile-detail-button" type="button" onClick={() => setSelectedJobId(job.id)}>
+                  View details
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
