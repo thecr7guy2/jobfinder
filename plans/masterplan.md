@@ -51,10 +51,15 @@ Get jobs from all target companies into a single normalized JSON store with cach
 
 **Deliverables:**
 - `config/companies.yaml` — company list with scraper config
+- `config/sources.yaml` — source registry with investigation status and notes
+- `docs/company_source_onboarding.md` — onboarding rules for new company sources
 - `scrapers/base.py` — abstract base class
 - `scrapers/icims.py` — Booking.com (JSON API)
 - `scrapers/html.py` — TNO (BeautifulSoup)
-- `scrapers/playwright.py` — ASML and JS-heavy sites (later)
+- `scrapers/greenhouse.py` — Adyen (Greenhouse API)
+- `scrapers/abn_amro.py` — ABN AMRO vacancy API
+- `scrapers/ing.py` — ING search API + detail pages
+- `scrapers/albert_heijn.py` — Albert Heijn vacancy API
 - `fetch_jobs.py` — single entry point, handles cache + merge
 - `data/cache/` — raw per-company cache (TTL-based)
 - `data/jobs.json` — normalized job store
@@ -67,7 +72,8 @@ Get jobs from all target companies into a single normalized JSON store with cach
 Score each new job against the resume using a staged cheap-first pipeline.
 
 **Deliverables:**
-- `data/resume.txt` — plain text resume (user maintains)
+- `config/matching.yaml` — matching preferences and model config
+- `data/resume.md` — markdown resume used as plain text input
 - `match_jobs.py` — scoring pipeline
 - Scoring written back into `data/jobs.json` per job
 
@@ -77,7 +83,7 @@ Score each new job against the resume using a staged cheap-first pipeline.
 3. **Keyword heuristic** — count skill overlaps between resume and JD (no API call)
 4. **LLM score** — only for jobs that pass stages 1–3; returns 0–100 score + 2-line rationale
 
-**LLM:** Gemini 2.0 Flash (`gemini-2.0-flash`) — ~$0.0002 per call. At 50 jobs/day passing to LLM = ~$0.01/day.
+**LLM:** DeepSeek Chat (`deepseek-chat`) via the DeepSeek API.
 
 **Done when:** New jobs get scored; only ~20–30% reach the LLM stage.
 
@@ -88,7 +94,7 @@ Notify via Telegram when a job scores above threshold.
 
 **Deliverables:**
 - `notify.py` — sends Telegram message for new high-score jobs
-- Alert includes: company, title, location, score, rationale snippet, job URL, dashboard URL
+- Alert includes: company, title, location, score, rationale snippet, and job URL
 - Deduplication: never alert on the same job twice (`alerted: true` in jobs.json)
 - Scraper failure alert: if a company returns 0 jobs for 2+ consecutive runs, send warning
 
@@ -141,7 +147,7 @@ Wire everything together so it runs on a schedule without manual intervention.
 | `cover_letter.yml` | workflow_dispatch (job_id param) | generate_cover_letter.py + commit + Telegram |
 | `deploy.yml` | Push to main | Build and deploy GitHub Pages |
 
-**Secrets needed:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GEMINI_API_KEY`, `GH_PAT` (for dashboard write-back)
+**Secrets needed:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DEEPSEEK_API_KEY`, `GH_PAT` (for dashboard write-back)
 
 **Done when:** No manual intervention needed; jobs discovered and alerted automatically every 8 hours.
 
@@ -152,12 +158,12 @@ Wire everything together so it runs on a schedule without manual intervention.
 | Layer | Choice | Why |
 |---|---|---|
 | Scraping | `requests` + `BeautifulSoup` | Sufficient for static HTML and APIs |
-| JS-rendered | `playwright` | For ASML and similar SPAs |
-| Matching LLM | Gemini 2.0 Flash | Cheapest capable model, generous free tier |
+| JS-rendered | none | Browser-only sources are intentionally skipped |
+| Matching LLM | DeepSeek Chat | Implemented hosted LLM for Phase 2 scoring |
 | State storage | JSON files in repo | No external DB, GitHub-native, simple |
 | Frontend | HTML + vanilla JS | No build step, works with GitHub Pages |
 | Charts | Chart.js (CDN) | Lightweight, no install |
-| Telegram | `python-telegram-bot` or raw `requests` to Bot API | Simple, no server needed |
+| Telegram | raw `requests` to Bot API | Planned simple API integration for alerts |
 | CI/CD | GitHub Actions | Free for public repos, native scheduling |
 | Config | YAML | Human-readable, easy to add companies |
 
@@ -168,10 +174,11 @@ Wire everything together so it runs on a schedule without manual intervention.
 | File | Purpose |
 |---|---|
 | `config/companies.yaml` | Company list, scraper type, filters, TTL |
-| `data/resume.txt` | Plain text resume used for matching |
+| `config/sources.yaml` | Source registry and investigation status |
+| `data/resume.md` | Resume used for matching |
 | `data/cover_letter_template.md` | Cover letter template with placeholders |
 | `data/jobs.json` | All discovered jobs, normalized + scored |
-| `data/applications.json` | User decisions + status history per job |
+| `data/applications.json` | Phase 4 planned file for user decisions + status history |
 | `data/cache/{company_id}.json` | Raw cached scrape per company |
 | `cover_letters/*.md` | Generated cover letters |
 
@@ -215,12 +222,21 @@ discovered
   "last_seen": "2026-04-03T10:00:00Z",
   "source": "icims_api",
   "match": {
+    "version": "phase2_v1",
+    "input_hash": "87e2b573169b126deebb0271ffdd70b44890d0a87a70454b6e2a9ff3c2e39c6d",
+    "status": "scored",
     "stage_reached": 4,
-    "keyword_score": 0.72,
-    "llm_score": 84,
-    "llm_rationale": "Strong Python and ML overlap. Missing Rust experience.",
-    "model": "gemini-2.0-flash",
-    "scored_at": "2026-04-03T10:01:00Z"
+    "title_hits": ["Data Scientist", "Senior Data Scientist", "GenAI Lead"],
+    "location_match": "any",
+    "keyword_hits": ["python", "machine learning", "data science", "llm", "genai"],
+    "keyword_score": 0.208,
+    "llm_score": 75,
+    "llm_rationale": "Strong GenAI alignment, but lighter seniority than requested.",
+    "llm_model": "deepseek-chat",
+    "llm_provider_base_url": "https://api.deepseek.com",
+    "llm_score_threshold": 70,
+    "scored_at": "2026-04-04T02:06:31Z",
+    "last_error": null
   },
   "alerted": true,
   "alerted_at": "2026-04-03T10:02:00Z"
@@ -235,7 +251,11 @@ discovered
 |---|---|---|---|
 | Booking.com | jobs.booking.com/api/jobs | icims (JSON API) | 1 |
 | TNO | tno.nl/en/careers/vacancies/ | html (BeautifulSoup) | 1 |
-| ASML | asml.com/en/careers/find-your-job | playwright (JS SPA) | Later |
+| Adyen | boards-api.greenhouse.io/v1/boards/adyen | greenhouse (JSON API) | 1 |
+| ABN AMRO | werkenbijabnamro.nl/en/api/vacancy/ | abn_amro (JSON API) | 1 |
+| ING | careers.ing.com/en/search-jobs/resultspost | ing (JSON + detail pages) | 1 |
+| Albert Heijn | werk.ah.nl/en/api/vacancy/ | albert_heijn (JSON API) | 1 |
+| ASML | asml.com/en/careers/find-your-job | skipped (browser-only) | Later |
 
 ---
 
@@ -243,11 +263,11 @@ discovered
 
 | Item | Cost |
 |---|---|
-| Gemini 2.0 Flash (50 LLM calls/day) | ~$0.30/month |
+| DeepSeek API | Usage-based |
 | GitHub Actions (public repo) | Free |
 | GitHub Pages | Free |
 | Telegram Bot API | Free |
-| **Total** | **< $1/month** |
+| **Total** | **Low, usage-dependent** |
 
 ---
 
@@ -261,8 +281,6 @@ discovered
 
 ## Open Questions
 
-- [ ] Which other companies to add beyond Booking.com, TNO, ASML?
-- [ ] Match score threshold — what score = "worth alerting"? (default: 70/100)
-- [ ] Should `fetch_jobs.py` support `--company booking_com` to fetch just one?
+- [ ] Which other companies should be added beyond the current active set?
 - [ ] Repo public or private? (affects Pages hosting strategy)
 - [ ] Cover letter delivery: Telegram file message, or just commit to repo?
