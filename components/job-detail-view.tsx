@@ -31,7 +31,6 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
     message: string;
   } | null>(null);
   const [coverLetterState, setCoverLetterState] = useState<CoverLetterViewState>(initialCoverLetter);
-  const [pendingPdf, setPendingPdf] = useState(false);
 
   useEffect(() => {
     setLocalJob(job);
@@ -142,7 +141,7 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
         tone: "success",
         message:
           payload.savedMode === "postgres"
-            ? `Generated and stored cover letter for ${localJob.title}.`
+            ? `Generated and stored cover letter for ${localJob.title}. Use Cover Letters to compile or download the PDF.`
             : payload.savedPath
               ? `Generated and saved cover letter for ${localJob.title}.`
               : `Generated cover letter for ${localJob.title}.`,
@@ -160,43 +159,6 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
         tone: "error",
         message: error instanceof Error ? error.message : "Failed to generate cover letter.",
       });
-    }
-  }
-
-  async function compileCoverLetterPdf() {
-    if (role !== "owner" || pendingPdf) {
-      return;
-    }
-
-    setPendingPdf(true);
-    setFeedback(null);
-
-    try {
-      const response = await fetch("/api/cover-letter/compile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: localJob.id }),
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; runUrl?: string }
-        | null;
-
-      if (!response.ok || !payload?.runUrl) {
-        throw new Error(payload?.error || "Failed to trigger PDF compilation.");
-      }
-
-      setFeedback({
-        tone: "success",
-        message: "Triggered PDF compilation workflow in GitHub Actions. Refresh after it finishes to download the PDF.",
-      });
-      window.open(payload.runUrl, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      setFeedback({
-        tone: "error",
-        message: error instanceof Error ? error.message : "Failed to trigger PDF compilation.",
-      });
-    } finally {
-      setPendingPdf(false);
     }
   }
 
@@ -270,7 +232,7 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
               <a className="primary-button" href={localJob.url} target="_blank" rel="noreferrer">
                 View job
               </a>
-              {role === "owner" ? (
+              {role === "owner" && coverLetterState.status !== "ready" ? (
                 <button
                   className="secondary-button"
                   type="button"
@@ -281,22 +243,12 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
                 </button>
               ) : null}
               {role === "owner" && coverLetterState.status === "ready" ? (
-                <button
+                <Link
                   className="secondary-button"
-                  type="button"
-                  disabled={pendingPdf}
-                  onClick={compileCoverLetterPdf}
+                  href={`/cover-letters?job=${encodeURIComponent(localJob.id)}`}
                 >
-                  {pendingPdf ? "Triggering PDF..." : "Compile PDF"}
-                </button>
-              ) : null}
-              {role === "owner" && coverLetterState.status === "ready" && coverLetterState.hasPdf ? (
-                <a
-                  className="secondary-button"
-                  href={`/api/cover-letter/pdf?jobId=${encodeURIComponent(localJob.id)}`}
-                >
-                  Download PDF
-                </a>
+                  Open cover letter
+                </Link>
               ) : null}
             </div>
           </div>
@@ -351,7 +303,7 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
                   <span className="subtle">{coverLetterState.savedPath}</span>
                 ) : null}
                 {coverLetterState.hasPdf ? (
-                  <span className="subtle">Compiled PDF available</span>
+                  <span className="subtle">Compiled PDF available in Cover Letters</span>
                 ) : null}
               </div>
             ) : null}
@@ -365,15 +317,6 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
             <h3>Cover letter</h3>
           </div>
           <div className="description">Generating draft from your resume, prompt instructions, and this job description.</div>
-        </section>
-      ) : null}
-
-      {role === "owner" && coverLetterState.status === "ready" && coverLetterState.previewText ? (
-        <section className="panel">
-          <div className="panel-header">
-            <h3>Cover letter preview</h3>
-          </div>
-          <div className="description">{coverLetterState.previewText}</div>
         </section>
       ) : null}
 

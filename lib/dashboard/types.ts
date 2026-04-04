@@ -93,3 +93,14 @@ export type DashboardViewModel = {
   trackerJobs: DashboardJob[];
   metrics: DashboardMetrics;
 };
+
+export type StoredCoverLetter = {
+  jobId: string;
+  title: string;
+  companyName: string;
+  filename: string;
+  previewText: string;
+  updatedAt: string;
+  pdfReady: boolean;
+  pdfUpdatedAt: string | null;
+};

@@ -17,11 +17,12 @@ const links = [
 
 export function DashboardNav({ role }: DashboardNavProps) {
   const pathname = usePathname();
+  const navLinks = role === "owner" ? [...links, { href: "/cover-letters", label: "Cover Letters" }] : links;
 
   return (
     <div className="nav">
       <span className="role-chip">{role === "owner" ? "Owner access" : "Viewer access"}</span>
-      {links.map((link) => (
+      {navLinks.map((link) => (
         <Link key={link.href} href={link.href} data-active={pathname === link.href}>
           {link.label}
         </Link>

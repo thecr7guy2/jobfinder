@@ -291,6 +291,24 @@ button, input, select, textarea {
   margin-top: 16px;
 }
 
+.cover-letter-spotlight {
+  border-color: rgba(28, 107, 74, 0.26);
+  box-shadow: 0 14px 34px rgba(28, 107, 74, 0.08);
+}
+
+.selected-row {
+  background: rgba(223, 240, 228, 0.55);
+}
+
+.selected-row td {
+  box-shadow: inset 0 1px 0 rgba(28, 107, 74, 0.1), inset 0 -1px 0 rgba(28, 107, 74, 0.1);
+}
+
+.selected-card {
+  border-color: rgba(28, 107, 74, 0.3);
+  box-shadow: 0 16px 38px rgba(28, 107, 74, 0.12);
+}
+
 .stats-grid + .panel {
   margin-top: 16px;
 }

@@ -233,6 +233,18 @@ export async function readCoverLetterRecord(jobId: string): Promise<CoverLetterR
   return rows[0] ? toCoverLetterRecord(rows[0]) : null;
 }
 
+export async function readAllCoverLetterRecords(): Promise<CoverLetterRecord[]> {
+  await ensureApplicationsTable();
+  const sql = getClient();
+  const rows = await sql<CoverLetterRow[]>`
+    SELECT job_id, filename, tex, preview_text, updated_at, pdf_filename, pdf_data, pdf_updated_at
+    FROM cover_letters
+    ORDER BY updated_at DESC
+  `;
+
+  return rows.map(toCoverLetterRecord);
+}
+
 export async function upsertCoverLetterRecord(
   jobId: string,
   filename: string,

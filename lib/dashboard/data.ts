@@ -7,11 +7,17 @@ import type {
   ApplicationStatus,
   DashboardJob,
   DashboardMetrics,
+  StoredCoverLetter,
   DashboardViewModel,
   JobRecord,
 } from "@/lib/dashboard/types";
 import { APPLICATION_STATUSES } from "@/lib/dashboard/constants";
-import { hasPostgresConfigured, readApplicationsFromPostgres, upsertApplicationRecord } from "@/lib/dashboard/postgres";
+import {
+  hasPostgresConfigured,
+  readAllCoverLetterRecords,
+  readApplicationsFromPostgres,
+  upsertApplicationRecord,
+} from "@/lib/dashboard/postgres";
 
 const ROOT_DIR = process.cwd();
 const JOBS_PATH = path.join(ROOT_DIR, "data", "jobs.json");
@@ -182,6 +188,35 @@ export async function getDashboardViewModel(): Promise<DashboardViewModel> {
 export async function getDashboardJobById(jobId: string): Promise<DashboardJob | null> {
   const viewModel = await getDashboardViewModel();
   return viewModel.trackerJobs.find((job) => job.id === jobId) ?? null;
+}
+
+export async function getStoredCoverLetters(): Promise<StoredCoverLetter[]> {
+  if (!hasPostgresConfigured()) {
+    return [];
+  }
+
+  const [jobs, letters] = await Promise.all([readJobs(), readAllCoverLetterRecords()]);
+  const jobMap = new Map(jobs.map((job) => [job.id, job]));
+
+  return letters
+    .map((letter) => {
+      const job = jobMap.get(letter.job_id);
+      if (!job) {
+        return null;
+      }
+
+      return {
+        jobId: letter.job_id,
+        title: job.title,
+        companyName: job.company_name,
+        filename: letter.filename,
+        previewText: letter.preview_text,
+        updatedAt: letter.updated_at,
+        pdfReady: Boolean(letter.pdf_filename && letter.pdf_data),
+        pdfUpdatedAt: letter.pdf_updated_at,
+      } satisfies StoredCoverLetter;
+    })
+    .filter((letter): letter is StoredCoverLetter => Boolean(letter));
 }
 
 export function assertValidStatus(status: string): asserts status is ApplicationStatus {

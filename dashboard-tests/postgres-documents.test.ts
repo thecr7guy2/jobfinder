@@ -86,6 +86,43 @@ describe("postgres document storage", () => {
     });
   });
 
+  it("reads all generated cover letters from postgres", async () => {
+    sqlTag
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          job_id: "job-1",
+          filename: "example-letter.tex",
+          tex: "\\documentclass{article}",
+          preview_text: "Preview",
+          updated_at: "2026-04-04T12:00:00Z",
+          pdf_filename: "example-letter.pdf",
+          pdf_data: new Uint8Array([1, 2, 3]),
+          pdf_updated_at: "2026-04-04T13:00:00Z",
+        },
+      ]);
+
+    const { readAllCoverLetterRecords } = await import("@/lib/dashboard/postgres");
+
+    await expect(readAllCoverLetterRecords()).resolves.toEqual([
+      {
+        job_id: "job-1",
+        filename: "example-letter.tex",
+        tex: "\\documentclass{article}",
+        preview_text: "Preview",
+        updated_at: "2026-04-04T12:00:00Z",
+        pdf_filename: "example-letter.pdf",
+        pdf_data: new Uint8Array([1, 2, 3]),
+        pdf_updated_at: "2026-04-04T13:00:00Z",
+      },
+    ]);
+  });
+
   it("upserts a generated cover letter into postgres", async () => {
     sqlTag
       .mockResolvedValueOnce([])
