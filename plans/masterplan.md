@@ -36,8 +36,9 @@ Vercel dashboard
      │
      ├── Review job → status update in Postgres
      │
-     ├── Generate cover letter  →  cover_letters/{company}-{role}-{date}.md
-     │                             + Telegram file delivery
+     ├── Generate cover letter  →  store `.tex` in Postgres
+     │
+     ├── Compile cover letter PDF  →  GitHub Actions + Tectonic artifact
      │
      └── Track status  →  Applied / Phone Screen / Interview / Offer / Rejected
 ```
@@ -126,15 +127,16 @@ Protected Next.js dashboard showing all jobs, their scores, and current applicat
 Generate a tailored cover letter when a job is approved.
 
 **Deliverables:**
-- `data/cover_letter_template.md` — user's template with named placeholders
-- `generate_cover_letter.py` — takes job ID, fetches JD + resume + template, calls LLM
-- Output saved to `cover_letters/{company}-{role-slug}-{date}.md`
-- Cover letter also sent as a file to Telegram for immediate access
+- `data/cover_letter_template.tex` — LaTeX template with named placeholders
+- `config/cover_letter_prompt.md` — generation instructions
+- dashboard-triggered cover letter generation
+- generated `.tex` stored in Postgres
+- manual PDF compilation with GitHub Actions + Tectonic
 - Prompt explicitly instructs: use only facts from resume, do not invent experience
 
-**Trigger:** Approval action on dashboard → server-side trigger or GitHub Actions `workflow_dispatch` → generates and commits cover letter.
+**Trigger:** Owner action on dashboard → server-side generation and Postgres save.
 
-**Done when:** Click Apply on dashboard → cover letter appears in Telegram within 2 minutes.
+**Done when:** Owner generates a cover letter in the dashboard, it is stored in Postgres, and a PDF can be compiled through the workflow.
 
 ---
 
@@ -144,9 +146,9 @@ Wire everything together so it runs on a schedule without manual intervention.
 **Workflows:**
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `scrape.yml` | Schedule (every 8h) + manual | fetch_jobs.py + match_jobs.py + notify.py |
-| `cover_letter.yml` | workflow_dispatch (job_id param) | generate_cover_letter.py + commit + Telegram |
-| `deploy.yml` | Push to main | Build and deploy Vercel dashboard or related frontend assets |
+| `scrape.yml` | Schedule (every 8h) + manual | fetch_jobs.py + match_jobs.py + notify.py + commit updated repo state |
+| `cover_letter_pdf.yml` | workflow_dispatch (job_id param) | read stored cover letter from Postgres, compile PDF with Tectonic, upload artifact |
+| `deploy.yml` | Vercel-managed | build and deploy dashboard from GitHub integration |
 
 **Secrets needed:** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DEEPSEEK_API_KEY`, `VIEWER_ACCESS_CODE`, `OWNER_ACCESS_CODE`, and `DATABASE_URL` or `POSTGRES_URL` (for dashboard write-back)
 
@@ -177,12 +179,13 @@ Wire everything together so it runs on a schedule without manual intervention.
 |---|---|
 | `config/companies.yaml` | Company list, scraper type, filters, TTL |
 | `config/sources.yaml` | Source registry and investigation status |
-| `data/resume.md` | Resume used for matching |
-| `data/cover_letter_template.md` | Cover letter template with placeholders |
+| `data/resume.md` | Local source resume before syncing into Postgres |
+| `data/cover_letter_template.tex` | Cover letter template with placeholders |
 | `data/jobs.json` | All discovered jobs, normalized + scored |
 | `data/applications.json` | Local fallback only when dashboard Postgres is not configured |
 | `data/cache/{company_id}.json` | Raw cached scrape per company |
-| `cover_letters/*.md` | Generated cover letters |
+| `profile_documents.resume_markdown` | Resume stored in Postgres for dashboard and automation |
+| `cover_letters` table | Generated cover letters stored in Postgres |
 
 ---
 
@@ -286,4 +289,4 @@ discovered
 
 - [ ] Which other companies should be added beyond the current active set?
 - [ ] Repo public or private? (affects automation and any future public dashboard variant)
-- [ ] Cover letter delivery: Telegram file message, or just commit to repo?
+- [ ] Should PDF compilation stay manual, or be triggered directly from the dashboard later?

@@ -7,14 +7,14 @@ The intended end state is:
 - normalize and deduplicate jobs into a repo-backed store
 - score roles against a resume
 - alert on strong matches via Telegram
-- review jobs in a GitHub Pages dashboard
+- review jobs in a protected Vercel dashboard
 - generate tailored cover letters on approval
 
-Everything is designed to run on GitHub infrastructure: Actions for scheduling, Pages for the frontend, and the repository itself as the database.
+The current system runs across GitHub, Vercel, and Postgres: GitHub Actions for automation, Vercel for the frontend, and Postgres for dashboard-owned state and stored cover letters.
 
 ## Current Status
 
-The repository currently implements Phases 1, 2, 3, and the first slice of Phase 5: job scraping, normalization, cache-backed refresh, DeepSeek-based job matching, Telegram alerting, a protected dashboard, and on-demand LaTeX cover letter generation.
+The repository currently implements Phases 1 through 6 in practical terms: job scraping, DeepSeek-based matching, Telegram alerting, a protected dashboard, Postgres-backed application and cover-letter storage, manual PDF compilation via GitHub Actions, and scheduled scrape/match/notify automation.
 
 Active sources today:
 - Booking.com
@@ -51,10 +51,10 @@ match_jobs.py  -- staged filter --> LLM score
 Telegram alert  (score >= threshold)
      |
      v
-GitHub Pages dashboard
+Vercel dashboard
      |
      |-- Review job -> Apply / Skip
-     |-- Generate cover letter -> cover_letters/{company}-{role}-{date}.md
+     |-- Generate cover letter -> stored in Postgres + manual PDF workflow
      `-- Track status -> Applied / Interview / Offer / Rejected
 ```
 
@@ -118,41 +118,42 @@ Current behavior:
 - deduplicates by top-level alert metadata on each job
 - warns when a source returns zero jobs for 2 consecutive runs
 
-### Phase 4 - GitHub Pages Dashboard
+### Phase 4 - Vercel Dashboard
 
-Goal: provide a static dashboard to review jobs and track application status.
+Goal: provide a protected dashboard to review jobs and track application status.
 
-Status: in progress.
+Status: implemented.
 
 Planned views:
 - Inbox
 - Tracker
 - Dashboard
 
-Planned approach:
+Current approach:
 - load `data/jobs.json` from the repository
-- update state through the GitHub API
-- redeploy Pages on repo change
+- store application state in Postgres
+- protect owner actions with server routes
+- deploy on Vercel
 
 ### Phase 5 - Cover Letter Generation
 
 Goal: generate a tailored cover letter when a job is approved.
 
-Planned deliverables:
+Current deliverables:
 - `data/cover_letter_template.tex`
 - `config/cover_letter_prompt.md`
 - `app/api/cover-letter/generate`
-- downloadable `.tex` generation from the dashboard
-- later: PDF compilation with Tectonic
+- on-demand generation from the dashboard
+- cover letter storage in Postgres
+- manual PDF compilation with Tectonic
 
 ### Phase 6 - GitHub Actions Automation
 
 Goal: run the full pipeline without manual intervention.
 
-Planned workflows:
+Current workflows:
 - `scrape.yml`: fetch, match, notify
-- `cover_letter.yml`: generate approved cover letters
-- `deploy.yml`: publish GitHub Pages
+- `cover_letter_pdf.yml`: compile stored cover letters to PDF
 
 Expected secrets:
 - `TELEGRAM_BOT_TOKEN`
@@ -166,6 +167,10 @@ Expected secrets:
 
 ```text
 jobfinder/
+├── .github/
+│   └── workflows/
+│       ├── cover_letter_pdf.yml
+│       └── scrape.yml
 ├── config/
 │   ├── companies.yaml
 │   ├── cover_letter_prompt.md
@@ -192,6 +197,9 @@ jobfinder/
 │   ├── masterplan.md
 │   ├── phase2_matching_plan.md
 │   └── scraper_plan.md
+├── scripts/
+│   ├── compile-cover-letter-pdf.mjs
+│   └── sync-resume-to-postgres.mjs
 ├── scrapers/
 │   ├── abn_amro.py
 │   ├── albert_heijn.py
@@ -267,8 +275,8 @@ DATABASE_URL=your_postgres_connection_string
 `DEEPSEEK_API_KEY` is used by matching. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
 are used by `notify.py`. `VIEWER_ACCESS_CODE` and `OWNER_ACCESS_CODE` protect the
 dashboard. `DATABASE_URL` or `POSTGRES_URL` is used for owner status write-back
-and persisted application state. `DEEPSEEK_API_KEY` is also used by the dashboard
-cover-letter generation route.
+and persisted application state, resume storage, and cover letter storage.
+`DEEPSEEK_API_KEY` is also used by the dashboard cover-letter generation route.
 
 For cover letter generation in production, the dashboard reads the resume from
 Postgres instead of from the local gitignored file. After you configure
@@ -280,6 +288,16 @@ pnpm sync:resume
 
 That command uploads [`data/resume.md`](/Users/sai/Documents/Projects/jobfinder/data/resume.md) into the
 `profile_documents` table under the `resume_markdown` key.
+
+Compile a stored cover letter PDF locally:
+
+```bash
+pnpm compile:cover-letter-pdf -- --job-id ing::35870385728
+```
+
+GitHub Actions now includes:
+- `Scrape Jobs` for scheduled/manual fetch + match + notify + repo state commit-back
+- `Cover Letter PDF` for manual Tectonic PDF compilation from stored Postgres cover letters
 
 If you prefer exporting the current required key directly:
 
@@ -364,11 +382,10 @@ Current stack:
 - `beautifulsoup4`
 - `PyYAML`
 - DeepSeek API for scoring
-- JSON files in-repo for state
-
-Planned additions:
+- JSON files in-repo for scraped/matched job state
 - Telegram notifications
-- GitHub Pages frontend
+- Next.js on Vercel for the dashboard
+- Postgres for application state, resume storage, and cover letters
 - GitHub Actions automation
 
 ## Notes
