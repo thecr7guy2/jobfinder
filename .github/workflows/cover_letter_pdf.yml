@@ -42,9 +42,16 @@ jobs:
             --job-id "${{ inputs.job_id }}" \
             --out-dir artifacts/cover-letters
 
+      - name: Sanitize artifact name
+        id: artifact_name
+        shell: bash
+        run: |
+          SAFE_NAME="$(printf '%s' "${{ inputs.job_id }}" | sed 's/[^A-Za-z0-9._-]/-/g')"
+          echo "value=cover-letter-${SAFE_NAME}" >> "$GITHUB_OUTPUT"
+
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cover-letter-${{ inputs.job_id }}
+          name: ${{ steps.artifact_name.outputs.value }}
           path: artifacts/cover-letters/*.pdf
           if-no-files-found: error
