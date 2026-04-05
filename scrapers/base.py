@@ -86,6 +86,8 @@ class BaseScraper(ABC):
             response = self.session.get(url, params=params, timeout=self.timeout)
             response.raise_for_status()
             return response.text
+        except requests.TooManyRedirects:
+            pass
         except requests.HTTPError as exc:
             status_code = exc.response.status_code if exc.response is not None else None
             if status_code != 403:

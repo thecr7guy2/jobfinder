@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 from typing import Any
 
 import requests
@@ -170,23 +171,34 @@ def main() -> None:
     total_new = 0
     total_updated = 0
     merged_jobs = existing_jobs
+    failures: list[str] = []
 
     for company in companies:
         observed_at = utcnow_iso()
-        raw_jobs = fetch_company_jobs(company, args.force, session)
-        scraper_cls = SCRAPER_TYPES[str(company["type"])]
-        scraper = scraper_cls(company, session=session)
-        normalized_jobs = scraper.normalize_jobs(raw_jobs, observed_at)
-        merged_jobs, new_count, updated_count = merge_jobs(
-            merged_jobs,
-            normalized_jobs,
-            str(company["id"]),
-        )
-        total_new += new_count
-        total_updated += updated_count
+        company_id = str(company["id"])
+
+        try:
+            raw_jobs = fetch_company_jobs(company, args.force, session)
+            scraper_cls = SCRAPER_TYPES[str(company["type"])]
+            scraper = scraper_cls(company, session=session)
+            normalized_jobs = scraper.normalize_jobs(raw_jobs, observed_at)
+            merged_jobs, new_count, updated_count = merge_jobs(
+                merged_jobs,
+                normalized_jobs,
+                company_id,
+            )
+            total_new += new_count
+            total_updated += updated_count
+        except Exception as exc:  # pragma: no cover - defensive path exercised via tests
+            failures.append(f"{company_id}: {exc}")
+            print(f"warning: failed to refresh {company_id}: {exc}", file=sys.stderr)
 
     write_jobs_store(merged_jobs)
     print(f"{total_new} new | {total_updated} updated | {len(merged_jobs)} total")
+    if failures:
+        print(f"{len(failures)} source failures", file=sys.stderr)
+        for failure in failures:
+            print(f" - {failure}", file=sys.stderr)
 
 
 if __name__ == "__main__":
