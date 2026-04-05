@@ -8,32 +8,44 @@ export function DashboardOverview({ metrics }: DashboardOverviewProps) {
   const maxCompanyCount = Math.max(...metrics.companyCounts.map((item) => item.count), 1);
   const maxStatusCount = Math.max(...metrics.statusCounts.map((item) => item.count), 1);
   const maxScoreBucket = Math.max(...metrics.scoreBuckets.map((item) => item.count), 1);
+  const reviewedJobs = metrics.statusCounts
+    .filter((item) => item.status !== "new")
+    .reduce((total, item) => total + item.count, 0);
+  const activePipeline =
+    metrics.statusCounts.find((item) =>
+      item.status === "reviewing" || item.status === "applied" || item.status === "interview",
+    )?.count ?? 0;
 
   return (
     <>
       <div className="hero">
+        <span className="hero-kicker">Operations view</span>
         <h2>Decision cockpit</h2>
         <p>
           Keep a live view of your strongest matches, application momentum, and source activity. This layer stays
           grounded in the repo data you already trust.
         </p>
+        <div className="hero-callouts">
+          <span className="hero-callout">Reviewed: {reviewedJobs}</span>
+          <span className="hero-callout">Active pipeline: {activePipeline}</span>
+        </div>
       </div>
 
       <div className="stats-grid">
         <article className="stat-card">
-          <span>Total jobs</span>
+          <span>Opportunity base</span>
           <strong>{metrics.totalJobs}</strong>
         </article>
         <article className="stat-card">
-          <span>Scored jobs</span>
+          <span>Scored roles</span>
           <strong>{metrics.scoredJobs}</strong>
         </article>
         <article className="stat-card">
-          <span>Inbox jobs</span>
+          <span>Inbox pressure</span>
           <strong>{metrics.inboxJobs}</strong>
         </article>
         <article className="stat-card">
-          <span>Alerted jobs</span>
+          <span>Telegram alerts</span>
           <strong>{metrics.alertedJobs}</strong>
         </article>
       </div>

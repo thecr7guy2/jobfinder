@@ -92,8 +92,13 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
   return (
     <>
       <div className="hero">
+        <span className="hero-kicker">Owner workspace</span>
         <h2>Cover Letters</h2>
         <p>All generated cover letters live here. Compile PDFs and download them from one place instead of from each job page.</p>
+        <div className="hero-callouts">
+          <span className="hero-callout">Stored drafts: {letters.length}</span>
+          <span className="hero-callout">PDF ready: {letters.filter((letter) => letter.pdfReady).length}</span>
+        </div>
       </div>
 
       {feedback ? <div className={`inline-feedback inline-feedback-${feedback.tone}`}>{feedback.message}</div> : null}
@@ -122,6 +127,12 @@ export function CoverLettersView({ letters, selectedJobId = null }: CoverLetters
                     : selectedLetter.compileStatus === "failed"
                       ? `PDF failed${selectedLetter.compileError ? `: ${selectedLetter.compileError}` : ""}`
                       : "PDF not compiled"}
+              </span>
+            </div>
+            <div className="badge-list">
+              <span className="mini-badge">Updated {new Date(selectedLetter.updatedAt).toLocaleDateString()}</span>
+              <span className="mini-badge">
+                {selectedLetter.pdfReady ? "PDF available" : "Draft only"}
               </span>
             </div>
             <div className="button-row">

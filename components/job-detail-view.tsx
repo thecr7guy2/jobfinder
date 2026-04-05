@@ -168,10 +168,15 @@ export function JobDetailView({ job, role, backHref, backLabel, initialCoverLett
         <Link className="back-link" href={backHref}>
           {backLabel}
         </Link>
+        <span className="hero-kicker">Role detail</span>
         <h2>{localJob.title}</h2>
         <p>
           {localJob.companyName} · {localJob.location}
         </p>
+        <div className="hero-callouts">
+          <span className="hero-callout">Score {localJob.score ?? "N/A"}</span>
+          <span className="hero-callout">{localJob.applicationStatus}</span>
+        </div>
       </div>
 
       {feedback ? <div className={`inline-feedback inline-feedback-${feedback.tone}`}>{feedback.message}</div> : null}
