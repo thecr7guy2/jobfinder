@@ -4,41 +4,41 @@
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-04-10T01:20:25Z"
+    "updated_at": "2026-04-10T08:59:08Z"
   },
   "tno": {
     "last_seen_job_count": 1,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-04-10T01:20:25Z"
+    "updated_at": "2026-04-10T08:59:08Z"
   },
   "adyen": {
     "last_seen_job_count": 20,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-04-10T01:20:25Z"
+    "updated_at": "2026-04-10T08:59:08Z"
   },
   "abn_amro": {
-    "last_seen_job_count": 8,
+    "last_seen_job_count": 7,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-04-10T01:20:25Z"
+    "updated_at": "2026-04-10T08:59:08Z"
   },
   "ing": {
     "last_seen_job_count": 2,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-04-10T01:20:25Z"
+    "updated_at": "2026-04-10T08:59:08Z"
   },
   "albert_heijn": {
     "last_seen_job_count": 2,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-04-10T01:20:25Z"
+    "updated_at": "2026-04-10T08:59:08Z"
   }
 }
