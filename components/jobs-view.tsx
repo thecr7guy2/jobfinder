@@ -20,6 +20,7 @@ export function JobsView({ title, subtitle, jobs, alternateJobs = [], role, mode
   const [company, setCompany] = useState("all");
   const [status, setStatus] = useState("all");
   const [queue, setQueue] = useState<"high_score" | "newly_added">("high_score");
+  const [trackerSort, setTrackerSort] = useState<"newest" | "oldest" | "score_desc">("newest");
   const [localJobs, setLocalJobs] = useState(jobs);
   const [alternateLocalJobs, setAlternateLocalJobs] = useState(alternateJobs);
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
@@ -55,8 +56,17 @@ export function JobsView({ title, subtitle, jobs, alternateJobs = [], role, mode
 
   const jobsPool = mode === "inbox" && queue === "newly_added" ? alternateLocalJobs : localJobs;
 
+  function sortableDateValue(job: DashboardJob): number {
+    const sourceValue = job.firstSeen ?? job.postedDate;
+    if (!sourceValue) {
+      return 0;
+    }
+    const timestamp = Date.parse(sourceValue);
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  }
+
   const visibleJobs = useMemo(() => {
-    return jobsPool.filter((job) => {
+    const filtered = jobsPool.filter((job) => {
       const matchesQuery =
         !query ||
         `${job.title} ${job.companyName} ${job.location}`.toLowerCase().includes(query.toLowerCase());
@@ -64,7 +74,24 @@ export function JobsView({ title, subtitle, jobs, alternateJobs = [], role, mode
       const matchesStatus = status === "all" || job.applicationStatus === status;
       return matchesQuery && matchesCompany && matchesStatus;
     });
-  }, [company, jobsPool, query, status]);
+
+    if (mode !== "tracker") {
+      return filtered;
+    }
+
+    return [...filtered].sort((left, right) => {
+      if (trackerSort === "score_desc") {
+        return (right.score ?? -1) - (left.score ?? -1);
+      }
+
+      const delta = sortableDateValue(right) - sortableDateValue(left);
+      if (delta === 0) {
+        return (right.score ?? -1) - (left.score ?? -1);
+      }
+
+      return trackerSort === "newest" ? delta : -delta;
+    });
+  }, [company, jobsPool, mode, query, status, trackerSort]);
 
   async function updateStatus(jobId: string, nextStatus: ApplicationStatus) {
     if (role !== "owner" || pendingJobId === jobId) {
@@ -163,6 +190,13 @@ export function JobsView({ title, subtitle, jobs, alternateJobs = [], role, mode
             <select value={queue} onChange={(event) => setQueue(event.target.value as "high_score" | "newly_added")}>
               <option value="high_score">High-score queue</option>
               <option value="newly_added">Newly added jobs</option>
+            </select>
+          ) : null}
+          {mode === "tracker" ? (
+            <select value={trackerSort} onChange={(event) => setTrackerSort(event.target.value as "newest" | "oldest" | "score_desc")}>
+              <option value="newest">Date: newest first</option>
+              <option value="oldest">Date: oldest first</option>
+              <option value="score_desc">Score: highest first</option>
             </select>
           ) : null}
           <input
