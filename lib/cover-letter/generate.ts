@@ -9,8 +9,10 @@ import type { CoverLetterSections, GeneratedCoverLetter } from "@/lib/cover-lett
 
 const ROOT_DIR = process.cwd();
 const JOBS_PATH = path.join(ROOT_DIR, "data", "jobs.json");
-const MAX_TOTAL_WORDS = 280;
-const MAX_PARAGRAPH_WORDS = 90;
+const MAX_TOTAL_WORDS = 330;
+const OPENING_MAX_WORDS = 115;
+const EXPERIENCE_MAX_WORDS = 150;
+const CLOSING_MAX_WORDS = 65;
 const MAX_PARAGRAPH_SENTENCES = 3;
 
 function isoDateStamp(): string {
@@ -69,52 +71,101 @@ function trimWords(value: string, maxWords: number): string {
   return `${words.slice(0, maxWords).join(" ").replace(/[,:;\-]+$/g, "")}.`;
 }
 
+function sentenceWithEnding(value: string): string {
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  if (!trimmed) {
+    return "";
+  }
+  if (/[.!?]["')\]]?$/.test(trimmed)) {
+    return trimmed;
+  }
+  return `${trimmed.replace(/[,:;\-]+$/g, "")}.`;
+}
+
+function trimToWordBudgetBySentence(value: string, maxWords: number): string {
+  const sentences = splitSentences(value).map(sentenceWithEnding).filter(Boolean);
+  if (sentences.length === 0) {
+    return sentenceWithEnding(trimWords(value, maxWords));
+  }
+
+  const selected: string[] = [];
+  for (const sentence of sentences) {
+    const candidate = [...selected, sentence].join(" ").trim();
+    if (countWords(candidate) > maxWords) {
+      break;
+    }
+    selected.push(sentence);
+  }
+
+  if (selected.length > 0) {
+    return selected.join(" ").trim();
+  }
+
+  return sentenceWithEnding(trimWords(sentences[0], maxWords));
+}
+
 function tightenParagraph(value: string, maxWords: number): string {
-  const sentences = splitSentences(value).slice(0, MAX_PARAGRAPH_SENTENCES);
-  let paragraph = sentences.join(" ").trim();
-  if (!paragraph) {
-    paragraph = value.trim();
+  const rawSentences = splitSentences(value);
+  if (rawSentences.length === 0) {
+    return sentenceWithEnding(trimWords(value, maxWords));
   }
 
-  if (countWords(paragraph) > maxWords) {
-    paragraph = trimWords(paragraph, maxWords);
-  }
+  const limited = rawSentences
+    .slice(0, MAX_PARAGRAPH_SENTENCES)
+    .map(sentenceWithEnding)
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
-  return paragraph;
+  return trimToWordBudgetBySentence(limited || value, maxWords);
 }
 
 export function normalizeCoverLetterSections(sections: CoverLetterSections): CoverLetterSections {
   const normalized = {
-    opening_paragraph: tightenParagraph(sections.opening_paragraph, MAX_PARAGRAPH_WORDS),
-    experience_paragraph: tightenParagraph(sections.experience_paragraph, MAX_PARAGRAPH_WORDS),
-    closing_paragraph: tightenParagraph(sections.closing_paragraph, 60),
+    opening_paragraph: tightenParagraph(sections.opening_paragraph, OPENING_MAX_WORDS),
+    experience_paragraph: tightenParagraph(sections.experience_paragraph, EXPERIENCE_MAX_WORDS),
+    closing_paragraph: tightenParagraph(sections.closing_paragraph, CLOSING_MAX_WORDS),
   };
 
-  let totalWords =
+  const totalWords = () =>
     countWords(normalized.opening_paragraph) +
     countWords(normalized.experience_paragraph) +
     countWords(normalized.closing_paragraph);
 
-  if (totalWords <= MAX_TOTAL_WORDS) {
-    return normalized;
+  while (totalWords() > MAX_TOTAL_WORDS) {
+    const dropOrder: Array<keyof CoverLetterSections> = [
+      "experience_paragraph",
+      "opening_paragraph",
+      "closing_paragraph",
+    ];
+    let dropped = false;
+
+    for (const key of dropOrder) {
+      const sentences = splitSentences(normalized[key]);
+      if (sentences.length <= 1) {
+        continue;
+      }
+
+      normalized[key] = sentences.slice(0, -1).join(" ").trim();
+      dropped = true;
+      break;
+    }
+
+    if (!dropped) {
+      break;
+    }
   }
 
-  const overflow = totalWords - MAX_TOTAL_WORDS;
-  normalized.experience_paragraph = trimWords(
-    normalized.experience_paragraph,
-    Math.max(45, countWords(normalized.experience_paragraph) - overflow),
-  );
+  if (totalWords() > MAX_TOTAL_WORDS) {
+    const overflow = totalWords() - MAX_TOTAL_WORDS;
+    const experienceBudget = Math.max(55, countWords(normalized.experience_paragraph) - overflow);
+    normalized.experience_paragraph = trimToWordBudgetBySentence(normalized.experience_paragraph, experienceBudget);
+  }
 
-  totalWords =
-    countWords(normalized.opening_paragraph) +
-    countWords(normalized.experience_paragraph) +
-    countWords(normalized.closing_paragraph);
-
-  if (totalWords > MAX_TOTAL_WORDS) {
-    normalized.opening_paragraph = trimWords(
-      normalized.opening_paragraph,
-      Math.max(35, MAX_TOTAL_WORDS - countWords(normalized.experience_paragraph) - countWords(normalized.closing_paragraph)),
-    );
+  if (totalWords() > MAX_TOTAL_WORDS) {
+    const overflow = totalWords() - MAX_TOTAL_WORDS;
+    const openingBudget = Math.max(40, countWords(normalized.opening_paragraph) - overflow);
+    normalized.opening_paragraph = trimToWordBudgetBySentence(normalized.opening_paragraph, openingBudget);
   }
 
   return normalized;
@@ -171,7 +222,7 @@ export async function generateCoverLetterSections(job: JobRecord): Promise<Cover
     body: JSON.stringify({
       model: "deepseek-chat",
       response_format: { type: "json_object" },
-      temperature: 0.2,
+      temperature: 0.35,
       max_tokens: 900,
       messages: [
         {

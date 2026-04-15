@@ -37,7 +37,7 @@ describe("cover letter latex helpers", () => {
     );
   });
 
-  it("trims generated sections to a one-page friendly budget", () => {
+  it("trims generated sections to a one-page friendly budget without sentence fragments", () => {
     const repeatedSentence =
       "I built production machine learning systems for large-scale data processing and deployment.";
     const longParagraph = Array.from({ length: 8 }, () => repeatedSentence).join(" ");
@@ -58,6 +58,9 @@ describe("cover letter latex helpers", () => {
       .split(/\s+/)
       .filter(Boolean).length;
 
-    expect(totalWords).toBeLessThanOrEqual(280);
+    expect(totalWords).toBeLessThanOrEqual(330);
+    expect(normalized.opening_paragraph).toMatch(/[.!?]$/);
+    expect(normalized.experience_paragraph).toMatch(/[.!?]$/);
+    expect(normalized.closing_paragraph).toMatch(/[.!?]$/);
   });
 });
