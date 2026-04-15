@@ -25,6 +25,20 @@ sources:
       - Runtime filters come from the exact vacancy URL query params
       - No browser automation required
 
+  - id: just_eat_takeaway
+    name: Just Eat Takeaway.com
+    careers_url: https://careers.justeattakeaway.com/global/en/search-results?from=10&s=1
+    status: active
+    extraction_method: custom
+    scraper_type: just_eat_takeaway
+    runtime_config: config/companies.yaml
+    last_verified: 2026-04-15
+    notes:
+      - Search page embeds Phenom payload under `phApp.ddo.eagerLoadRefineSearch.data.jobs`
+      - Pagination uses `from` offset in steps of 10 and `totalHits` for stop condition
+      - Runtime filters keep Netherlands jobs in Data & Analytics or Tech & Product categories
+      - Job detail enrichment uses Workday apply pages with JobPosting JSON-LD for full description
+
   - id: asml
     name: ASML
     careers_url: https://www.asml.com/en/careers/find-your-job

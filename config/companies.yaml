@@ -27,6 +27,18 @@ companies:
       link: "a"
       location: "dd.extra-werklocatie"
 
+  - id: just_eat_takeaway
+    name: Just Eat Takeaway.com
+    type: just_eat_takeaway
+    url: https://careers.justeattakeaway.com/global/en/search-results
+    ttl_hours: 6
+    filters:
+      countries:
+        - Netherlands
+      categories:
+        - Data & Analytics
+        - Tech & Product
+
   - id: adyen
     name: Adyen
     type: greenhouse
