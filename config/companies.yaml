@@ -20,8 +20,6 @@ companies:
     ttl_hours: 6
     filters:
       zoeken_term: ""
-      "Zoe_Selected_facet:Careers Ervaring": "829"
-      "Zoe_Selected_facet:Careers Opleidingsniveau": "647"
       "Zoe_Selected_facet:Careers Vakgebied": "759"
     selectors:
       job_card: "div.ipx-pt-vacancy"

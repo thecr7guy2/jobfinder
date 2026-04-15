@@ -32,6 +32,9 @@ jobs:
 
       - name: Setup Tectonic
         uses: wtfjoke/setup-tectonic@v4
+        with:
+          github-token: ${{ github.token }}
+          tectonic-version: 0.15.0
 
       - name: Compile cover letter PDF
         env:

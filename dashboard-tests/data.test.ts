@@ -113,6 +113,65 @@ describe("dashboard data derivation", () => {
     expect(viewModel.trackerJobs.find((job) => job.id === "job-1")?.applicationStatus).toBe("new");
   });
 
+  it("hides tracker jobs with score below 40 and sorts newest jobs first", () => {
+    const extraJobs: JobRecord[] = [
+      ...jobs,
+      {
+        id: "job-4",
+        company_id: "tno",
+        company_name: "TNO",
+        title: "Low score role",
+        url: "https://example.com/4",
+        location: "Den Haag",
+        categories: ["Data"],
+        description: "Very weak fit",
+        posted_date: "2026-04-06",
+        first_seen: "2026-04-06T09:00:00Z",
+        last_seen: "2026-04-06T09:00:00Z",
+        source: "html_scrape",
+        match: {
+          status: "scored",
+          llm_score: 35,
+          llm_rationale: "Low fit",
+          llm_score_threshold: 70,
+          keyword_hits: [],
+          title_hits: [],
+          location_match: "any",
+          scored_at: "2026-04-06T09:01:00Z",
+        },
+      },
+      {
+        id: "job-5",
+        company_id: "adyen",
+        company_name: "Adyen",
+        title: "Fresh data role",
+        url: "https://example.com/5",
+        location: "Amsterdam, Netherlands",
+        categories: ["Data"],
+        description: "Strong recent role",
+        posted_date: "2026-04-07",
+        first_seen: "2026-04-07T09:00:00Z",
+        last_seen: "2026-04-07T09:00:00Z",
+        source: "greenhouse",
+        match: {
+          status: "scored",
+          llm_score: 74,
+          llm_rationale: "Strong fit",
+          llm_score_threshold: 70,
+          keyword_hits: ["python"],
+          title_hits: ["Data"],
+          location_match: "any",
+          scored_at: "2026-04-07T09:01:00Z",
+        },
+      },
+    ];
+
+    const viewModel = deriveDashboardViewModel(extraJobs, {});
+
+    expect(viewModel.trackerJobs.some((job) => job.id === "job-4")).toBe(false);
+    expect(viewModel.trackerJobs[0].id).toBe("job-5");
+  });
+
   it("builds dashboard metrics from merged job state", () => {
     const applications: ApplicationsFile = {
       "job-1": {

@@ -116,6 +116,22 @@ function sortByRecencyAndScore(jobs: DashboardJob[]): DashboardJob[] {
   });
 }
 
+function sortByNewestDate(jobs: DashboardJob[]): DashboardJob[] {
+  return [...jobs].sort((left, right) => {
+    const firstSeenDelta = String(right.firstSeen ?? "").localeCompare(String(left.firstSeen ?? ""));
+    if (firstSeenDelta !== 0) {
+      return firstSeenDelta;
+    }
+
+    const postedDateDelta = String(right.postedDate ?? "").localeCompare(String(left.postedDate ?? ""));
+    if (postedDateDelta !== 0) {
+      return postedDateDelta;
+    }
+
+    return (right.score ?? -1) - (left.score ?? -1);
+  });
+}
+
 function buildMetrics(jobs: DashboardJob[], inboxJobs: DashboardJob[]): DashboardMetrics {
   const statusCounts = APPLICATION_STATUSES.map((status) => ({
     status,
@@ -170,7 +186,14 @@ export function deriveDashboardViewModel(
         job.firstSeen === job.lastSeen,
     ),
   );
-  const trackerJobs = sortByScoreAndRecency(dashboardJobs);
+  const trackerJobs = sortByNewestDate(
+    dashboardJobs.filter((job) => {
+      if (typeof job.score !== "number") {
+        return true;
+      }
+      return job.score >= 40;
+    }),
+  );
 
   return {
     inboxJobs,
