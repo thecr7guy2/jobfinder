@@ -105,15 +105,15 @@ describe("dashboard data derivation", () => {
     expect(viewModel.trackerJobs.find((job) => job.id === "job-1")?.applicationStatus).toBe("applied");
   });
 
-  it("defaults irrelevant jobs to skipped instead of new", () => {
+  it("keeps tracker scoped to score >= 50 and defaults relevant low-priority jobs to skipped", () => {
     const viewModel = deriveDashboardViewModel(jobs, {});
 
-    expect(viewModel.trackerJobs.find((job) => job.id === "job-2")?.applicationStatus).toBe("skipped");
+    expect(viewModel.trackerJobs.some((job) => job.id === "job-2")).toBe(false);
     expect(viewModel.trackerJobs.find((job) => job.id === "job-3")?.applicationStatus).toBe("skipped");
     expect(viewModel.trackerJobs.find((job) => job.id === "job-1")?.applicationStatus).toBe("new");
   });
 
-  it("hides tracker jobs with score below 40 and sorts newest jobs first", () => {
+  it("hides tracker jobs with N/A or score below 50 and sorts newest jobs first", () => {
     const extraJobs: JobRecord[] = [
       ...jobs,
       {
@@ -168,6 +168,7 @@ describe("dashboard data derivation", () => {
 
     const viewModel = deriveDashboardViewModel(extraJobs, {});
 
+    expect(viewModel.trackerJobs.some((job) => job.id === "job-2")).toBe(false);
     expect(viewModel.trackerJobs.some((job) => job.id === "job-4")).toBe(false);
     expect(viewModel.trackerJobs[0].id).toBe("job-5");
   });

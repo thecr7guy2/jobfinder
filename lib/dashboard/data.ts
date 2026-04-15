@@ -188,14 +188,8 @@ export function deriveDashboardViewModel(
   );
   const trackerJobs = sortByNewestDate(
     dashboardJobs.filter((job) => {
-      if (job.score === null) {
-        return true;
-      }
       const numericScore = Number(job.score);
-      if (!Number.isFinite(numericScore)) {
-        return true;
-      }
-      return numericScore >= 40;
+      return Number.isFinite(numericScore) && numericScore >= 50;
     }),
   );
 
