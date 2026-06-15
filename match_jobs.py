@@ -1,3 +1,5 @@
+"""Rank discovered jobs through deterministic filters and resume-grounded LLM scoring."""
+
 from __future__ import annotations
 
 import argparse
@@ -49,6 +51,7 @@ TITLE_STOPWORDS = {
 
 
 def resolve_database_url() -> str | None:
+    """Resolve the first supported Postgres connection-string environment variable."""
     return (
         os.getenv("DATABASE_URL")
         or os.getenv("POSTGRES_URL")
@@ -59,6 +62,7 @@ def resolve_database_url() -> str | None:
 
 
 def load_dotenv(path: Path) -> None:
+    """Load simple key-value pairs without overwriting existing environment values."""
     if not path.exists():
         return
 
@@ -75,6 +79,7 @@ def load_dotenv(path: Path) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse matching scope, refresh, and persistence options."""
     parser = argparse.ArgumentParser(description="Score jobs against a resume using staged matching.")
     parser.add_argument("--company", help="Score only one company by id.")
     parser.add_argument("--job-id", help="Score only one job by exact id.")
@@ -84,6 +89,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_matching_config() -> dict[str, Any]:
+    """Read and validate the matching configuration mapping."""
     with CONFIG_PATH.open("r", encoding="utf-8") as handle:
         payload = yaml.safe_load(handle) or {}
 
@@ -112,6 +118,7 @@ def write_jobs_store(jobs: list[dict[str, Any]]) -> None:
 
 
 def load_resume_text() -> str:
+    """Load the resume from Postgres when available, otherwise from a local file."""
     database_url = resolve_database_url()
     if database_url:
         if psycopg is None:
@@ -165,6 +172,7 @@ def title_tokens(value: str | None) -> set[str]:
 
 
 def title_matches(job_title: str, target_titles: list[str]) -> list[str]:
+    """Return configured role titles with sufficient token overlap."""
     job_tokens = title_tokens(job_title)
     hits: list[str] = []
 
@@ -187,6 +195,7 @@ def location_match(
     remote_markers: list[str],
     allow_remote: bool,
 ) -> str | None:
+    """Return the matching preferred location or remote marker for a vacancy."""
     location_text = normalize_text(location)
     if not location_text:
         return None
@@ -209,6 +218,7 @@ def location_match(
 
 
 def keyword_hits(text: str, keywords: list[str]) -> list[str]:
+    """Find configured whole-term keywords in normalized vacancy text."""
     normalized_text = normalize_text(text)
     padded_text = f" {normalized_text} "
     hits: list[str] = []
@@ -222,6 +232,7 @@ def keyword_hits(text: str, keywords: list[str]) -> list[str]:
 
 
 def build_input_hash(job: dict[str, Any], matching_config: dict[str, Any], resume_text: str) -> str:
+    """Fingerprint all inputs that determine a job's saved match result."""
     payload = {
         "job": {
             "title": job.get("title"),
@@ -238,6 +249,7 @@ def build_input_hash(job: dict[str, Any], matching_config: dict[str, Any], resum
 
 
 def should_score_job(job: dict[str, Any], input_hash: str, rescore_all: bool) -> bool:
+    """Return whether the role needs a fresh match evaluation."""
     if rescore_all:
         return True
 
@@ -360,6 +372,7 @@ def call_llm(
     job: dict[str, Any],
     resume_text: str,
 ) -> tuple[int, str]:
+    """Request and parse a structured resume-to-role fit assessment."""
     api_key_env = str(llm_config.get("api_key_env", "DEEPSEEK_API_KEY"))
     api_key = os.getenv(api_key_env)
     if not api_key:
@@ -407,6 +420,7 @@ def evaluate_job(
     resume_text: str,
     session: requests.Session,
 ) -> dict[str, Any]:
+    """Run one vacancy through deterministic filters and optional LLM scoring."""
     input_hash = build_input_hash(job, matching_config, resume_text)
     target_titles = [str(value) for value in matching_config.get("target_titles", [])]
     preferred_locations = [str(value) for value in matching_config.get("preferred_locations", [])]
@@ -480,6 +494,7 @@ def evaluate_job(
 
 
 def summarize_matches(matches: list[dict[str, Any]], skipped: int, total_candidates: int) -> str:
+    """Build the concise command-line summary for a matching run."""
     counts = {
         "filtered_title": 0,
         "filtered_location": 0,
@@ -507,6 +522,7 @@ def summarize_matches(matches: list[dict[str, Any]], skipped: int, total_candida
 
 
 def main() -> None:
+    """Evaluate selected roles and persist updated match metadata."""
     args = parse_args()
     load_dotenv(ENV_PATH)
     matching_config = load_matching_config()

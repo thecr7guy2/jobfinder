@@ -1,3 +1,5 @@
+"""Send high-match Telegram alerts and monitor career-source health."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,6 +24,7 @@ SEND_DELAY_SECONDS = 0.05
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse notification scope, dry-run, and resend options."""
     parser = argparse.ArgumentParser(description="Send Telegram alerts for newly qualified jobs.")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be sent without writes.")
     parser.add_argument("--company", help="Only send job alerts for one company id.")
@@ -65,6 +68,7 @@ def load_company_ids() -> list[str]:
 
 
 def load_source_health() -> dict[str, dict[str, Any]] | None:
+    """Read persisted source-health counters when they have been initialized."""
     if not SOURCE_HEALTH_PATH.exists():
         return None
 
@@ -94,6 +98,7 @@ def select_alertable_jobs(
     company_id: str | None = None,
     resend: bool = False,
 ) -> tuple[list[dict[str, Any]], int]:
+    """Select scored, above-threshold jobs that have not already been alerted."""
     selected: list[dict[str, Any]] = []
     skipped_alerted = 0
 
@@ -137,6 +142,7 @@ def truncate_rationale(value: str, limit: int = 150) -> str:
 
 
 def format_job_alert(job: dict[str, Any]) -> str:
+    """Render one vacancy as a compact Telegram HTML message."""
     match = dict(job["match"])
     score = int(match["llm_score"])
     title = escape_html(str(job.get("title") or "Unknown title"))
@@ -168,6 +174,7 @@ def telegram_send_message(
     chat_id: str,
     text: str,
 ) -> int:
+    """Send a Telegram message and return its server-assigned message ID."""
     response = session.post(
         f"https://api.telegram.org/bot{bot_token}/sendMessage",
         data={
@@ -213,6 +220,7 @@ def update_source_health(
     current_counts: dict[str, int],
     timestamp: str,
 ) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Advance zero-result counters and identify sources needing a warning."""
     updated: dict[str, dict[str, Any]] = {}
     warnings: list[str] = []
 
@@ -262,6 +270,7 @@ def summarize(
 
 
 def main() -> None:
+    """Send pending alerts, update source health, and persist notification state."""
     args = parse_args()
     load_dotenv(ENV_PATH)
 
