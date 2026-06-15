@@ -1,3 +1,5 @@
+"""Fetch, normalize, cache, and merge vacancies from configured company sources."""
+
 from __future__ import annotations
 
 import argparse
@@ -20,6 +22,7 @@ JOBS_PATH = DATA_DIR / "jobs.json"
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse source-selection and cache-refresh command-line options."""
     parser = argparse.ArgumentParser(description="Fetch jobs for configured companies.")
     parser.add_argument("--force", action="store_true", help="Ignore cache TTLs and refetch everything.")
     parser.add_argument("--company", help="Fetch only one configured company by id.")
@@ -27,6 +30,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_companies(company_id: str | None = None) -> list[dict[str, Any]]:
+    """Load all configured companies or one company selected by its stable ID."""
     with CONFIG_PATH.open("r", encoding="utf-8") as handle:
         config = yaml.safe_load(handle) or {}
 
@@ -42,6 +46,7 @@ def load_companies(company_id: str | None = None) -> list[dict[str, Any]]:
 
 
 def load_jobs_store() -> list[dict[str, Any]]:
+    """Read the normalized repository-backed vacancy collection."""
     if not JOBS_PATH.exists():
         return []
 
@@ -53,6 +58,7 @@ def load_jobs_store() -> list[dict[str, Any]]:
 
 
 def write_jobs_store(jobs: list[dict[str, Any]]) -> None:
+    """Persist the normalized vacancy collection with deterministic formatting."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with JOBS_PATH.open("w", encoding="utf-8") as handle:
         json.dump(jobs, handle, indent=2, ensure_ascii=True)
@@ -60,10 +66,12 @@ def write_jobs_store(jobs: list[dict[str, Any]]) -> None:
 
 
 def cache_path_for(company_id: str) -> Path:
+    """Return the raw-response cache path for a company source."""
     return CACHE_DIR / f"{company_id}.json"
 
 
 def cache_is_fresh(cache_path: Path, ttl_hours: int) -> bool:
+    """Return whether a cached source response is still inside its configured TTL."""
     if not cache_path.exists():
         return False
 
@@ -80,12 +88,14 @@ def cache_is_fresh(cache_path: Path, ttl_hours: int) -> bool:
 
 
 def load_cached_jobs(cache_path: Path) -> list[dict[str, Any]]:
+    """Read raw vacancies from a previously stored source cache."""
     with cache_path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     return list(payload.get("raw_jobs", []))
 
 
 def write_cache(company: dict[str, Any], fetched_at: str, raw_jobs: list[dict[str, Any]]) -> None:
+    """Store raw source results and the timestamp used for TTL evaluation."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache_path = cache_path_for(str(company["id"]))
     payload = {
@@ -100,12 +110,14 @@ def write_cache(company: dict[str, Any], fetched_at: str, raw_jobs: list[dict[st
 
 
 def parse_zulu_timestamp(value: str):
+    """Parse an ISO-8601 timestamp that may use the trailing ``Z`` shorthand."""
     from datetime import datetime
 
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 def fetch_company_jobs(company: dict[str, Any], force: bool, session: requests.Session) -> list[dict[str, Any]]:
+    """Return raw jobs for one company, reusing a valid cache when possible."""
     scraper_type = company.get("type")
     scraper_cls = SCRAPER_TYPES.get(scraper_type)
     if scraper_cls is None:
@@ -129,6 +141,7 @@ def merge_jobs(
     incoming_jobs: list[dict[str, Any]],
     company_id: str,
 ) -> tuple[list[dict[str, Any]], int, int]:
+    """Replace one company's snapshot while preserving first-seen and other-source data."""
     existing_same_company = {
         job["id"]: dict(job) for job in existing_jobs if str(job.get("company_id")) == company_id
     }
@@ -163,6 +176,7 @@ def merge_jobs(
 
 
 def main() -> None:
+    """Refresh selected sources, normalize their jobs, and update the shared store."""
     args = parse_args()
     companies = load_companies(args.company)
     existing_jobs = load_jobs_store()

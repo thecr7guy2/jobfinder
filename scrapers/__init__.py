@@ -1,3 +1,5 @@
+"""Registry of supported career-site scraper implementations."""
+
 from scrapers.albert_heijn import AlbertHeijnScraper
 from scrapers.abn_amro import ABNAMROScraper
 from scrapers.greenhouse import GreenhouseScraper

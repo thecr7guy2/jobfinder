@@ -1,5 +1,6 @@
 {
   "name": "jobfinder-dashboard",
+  "description": "Protected dashboard for reviewing matched jobs, tracking applications, and creating cover letters.",
   "private": true,
   "scripts": {
     "dev": "next dev",

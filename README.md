@@ -1,403 +1,258 @@
-# JobFinder
+<div align="center">
 
-JobFinder is a personal job discovery and application tracking system.
+# 🎯 JobFinder
 
-The intended end state is:
-- monitor target company career pages
-- normalize and deduplicate jobs into a repo-backed store
-- score roles against a resume
-- alert on strong matches via Telegram
-- review jobs in a protected Vercel dashboard
-- generate tailored cover letters on approval
+### A personal job-search system that keeps looking while you focus on applying
 
-The current system runs across GitHub, Vercel, and Postgres: GitHub Actions for automation, Vercel for the frontend, and Postgres for dashboard-owned state and stored cover letters.
+**Discover roles, rank the best matches, receive alerts, track decisions, and create
+tailored cover letters from one private workflow.**
 
-## Current Status
+![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)
+![Automation](https://img.shields.io/badge/Automation-GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
+![AI Matching](https://img.shields.io/badge/AI_Matching-DeepSeek-5B5BD6?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Active-2EA44F?style=flat-square)
 
-The repository currently implements Phases 1 through 6 in practical terms: job scraping, DeepSeek-based matching, Telegram alerting, a protected dashboard, Postgres-backed application and cover-letter storage, dashboard-triggered PDF compilation via GitHub Actions, and scheduled scrape/match/notify automation.
+</div>
 
-Active sources today:
+![Job opportunities flowing through AI ranking into a dashboard, alerts, an application tracker, and a cover letter](assets/jobfinder-hero.png)
+
+---
+
+## 👋 What Is JobFinder?
+
+Searching for work is rarely difficult because there are no vacancies. It is difficult
+because the useful ones are scattered across company websites, appear at different
+times, and disappear into browser tabs before a decision is made.
+
+JobFinder turns that fragmented process into a small personal operating system:
+
+1. 🔎 It checks selected company career pages on a schedule
+2. 🧹 It cleans and deduplicates vacancies into one consistent feed
+3. 🧠 It compares promising roles with a resume and assigns a fit score
+4. 📲 It sends Telegram alerts when a role clears the chosen threshold
+5. 🗂️ It provides a protected dashboard for review and application tracking
+6. ✍️ It creates tailored cover letters and compiles them into downloadable PDFs
+
+The result is less time repeatedly searching and more time making deliberate
+applications.
+
+---
+
+## ✨ The Experience
+
+### Wake up to a shortlist, not fifty tabs
+
+JobFinder watches configured employers every eight hours. Each source uses the simplest
+reliable integration available, such as a public careers API or server-rendered HTML.
+
+### Let cheap filters do the first pass
+
+Roles move through title, location, and keyword filters before an LLM is called. This
+keeps the matching stage focused and avoids spending model requests on obviously
+irrelevant jobs.
+
+### Keep every decision visible
+
+The dashboard separates strong unreviewed matches from the full job tracker. A role can
+move through `new`, `reviewing`, `applied`, `interview`, `offer`, `rejected`, or
+`skipped` without losing its original vacancy details or match explanation.
+
+### Turn a good match into an application
+
+Approved roles can produce a resume-grounded cover letter. The draft is stored in
+Postgres and can be compiled into a PDF through a GitHub Actions workflow.
+
+---
+
+## 🖥️ Product Areas
+
+| Area | What it helps you do |
+|---|---|
+| 📥 **Inbox** | Start with unreviewed roles scoring above the match threshold |
+| 📊 **Dashboard** | See pipeline health, opportunity volume, and application momentum |
+| 🗃️ **Tracker** | Filter every discovered role and update its application status |
+| 📄 **Job detail** | Review the vacancy, match score, rationale, and next actions together |
+| ✍️ **Cover Letters** | Revisit generated drafts and download compiled PDFs |
+| 🔔 **Telegram** | Hear about strong matches and unhealthy job sources without opening the app |
+
+---
+
+## 🔄 How It Works
+
+```mermaid
+flowchart LR
+    A["Company career pages"] --> B["Fetch and normalize"]
+    B --> C["Deduplicate job store"]
+    C --> D["Title, location, and keyword filters"]
+    D --> E["AI fit score"]
+    E --> F{"Score above threshold?"}
+    F -- Yes --> G["Telegram alert"]
+    F -- Review all --> H["Protected dashboard"]
+    G --> H
+    H --> I["Application tracker"]
+    H --> J["Tailored cover letter"]
+    J --> K["PDF compilation"]
+```
+
+### Current integrations
+
 - Booking.com
 - TNO
+- Just Eat Takeaway.com
 - Adyen
 - ABN AMRO
 - ING
 - Albert Heijn
 
-Current implementation rules:
-- prefer direct APIs when available
-- use static HTML when possible
-- skip sources that require browser automation
+Sources that require browser automation are deliberately skipped until a stable,
+non-browser integration is available.
 
-## Problem
+---
 
-Most missed opportunities happen because the role was never seen in time. JobFinder is meant to solve that by continuously watching a small set of target companies and surfacing relevant openings automatically.
+## 📌 Current Snapshot
 
-## Planned User Flow
+The committed data snapshot changes automatically as the scheduled workflow runs. At
+the time of this documentation update it contained:
 
-```text
-companies.yaml
-     |
-     v
-fetch_jobs.py  -- cache check --> scrape / API call
-     |
-     v
-data/jobs.json  (normalized, deduplicated)
-     |
-     v
-match_jobs.py  -- staged filter --> LLM score
-     |
-     v
-Telegram alert  (score >= threshold)
-     |
-     v
-Vercel dashboard
-     |
-     |-- Review job -> Apply / Skip
-     |-- Generate cover letter -> stored in Postgres
-     |-- Compile/download PDF -> Cover Letters page + GitHub Actions + Postgres
-     `-- Track status -> Applied / Interview / Offer / Rejected
-```
+| Signal | Value |
+|---|---:|
+| Open jobs in the shared feed | **31** |
+| Companies represented | **6** |
+| Roles with completed AI scoring | **17** |
+| Roles above the configured alert threshold | **5** |
+| Scheduled discovery frequency | **Every 8 hours** |
 
-## Roadmap
+These values describe a changing personal feed, not benchmark results.
 
-### Phase 1 - Scraper
+---
 
-Goal: fetch jobs from target companies into one normalized JSON store with TTL-based caching.
+## 🧩 System Design
 
-Status: implemented.
+JobFinder intentionally uses different tools for different responsibilities:
 
-Main deliverables in this repo:
-- [`config/companies.yaml`](/Users/sai/Documents/Projects/jobfinder/config/companies.yaml)
-- [`config/sources.yaml`](/Users/sai/Documents/Projects/jobfinder/config/sources.yaml)
-- [`scrapers/base.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/base.py)
-- [`scrapers/icims.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/icims.py)
-- [`scrapers/html.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/html.py)
-- [`scrapers/greenhouse.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/greenhouse.py)
-- [`scrapers/abn_amro.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/abn_amro.py)
-- [`scrapers/ing.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/ing.py)
-- [`scrapers/albert_heijn.py`](/Users/sai/Documents/Projects/jobfinder/scrapers/albert_heijn.py)
-- [`fetch_jobs.py`](/Users/sai/Documents/Projects/jobfinder/fetch_jobs.py)
-- [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json)
-- `data/cache/`
+| Layer | Responsibility |
+|---|---|
+| 🐍 **Python + uv** | Source adapters, normalization, matching, and notifications |
+| ⚡ **Next.js + React** | Protected dashboard and owner workflows |
+| 🐘 **Postgres** | Application state, resume content, cover letters, and PDFs |
+| ⚙️ **GitHub Actions** | Scheduled discovery and on-demand PDF compilation |
+| ☁️ **Vercel** | Dashboard hosting |
+| 🤖 **DeepSeek** | Resume-to-role fit assessment after deterministic filtering |
+| 📲 **Telegram** | High-match and source-health notifications |
 
-Done when:
-- `uv run python fetch_jobs.py` collects jobs for configured companies
-- rerunning within TTL reuses cache instead of refetching
+The repository-backed job feed keeps discovery output inspectable, while dashboard-owned
+state lives in Postgres so the deployed application can update it safely.
 
-### Phase 2 - Matching
+---
 
-Goal: score each new job against a plain-text resume using a cheap-first staged pipeline.
+## 🚀 Run It Locally
 
-Status: implemented.
-
-Main deliverables in this repo:
-- [`config/matching.yaml`](/Users/sai/Documents/Projects/jobfinder/config/matching.yaml)
-- [`data/resume.md`](/Users/sai/Documents/Projects/jobfinder/data/resume.md)
-- [`match_jobs.py`](/Users/sai/Documents/Projects/jobfinder/match_jobs.py)
-- match data written back into `data/jobs.json`
-
-Current stages:
-1. title filter
-2. location filter
-3. keyword overlap heuristic
-4. DeepSeek API score for shortlisted roles only
-
-### Phase 3 - Telegram Alerts
-
-Goal: notify when a new job crosses the score threshold.
-
-Status: implemented.
-
-Main deliverables in this repo:
-- [`notify.py`](/Users/sai/Documents/Projects/jobfinder/notify.py)
-- alert metadata written back into `data/jobs.json`
-- [`data/source_health.json`](/Users/sai/Documents/Projects/jobfinder/data/source_health.json) created on first real notifier run
-
-Current behavior:
-- sends one Telegram message per newly qualified job
-- deduplicates by top-level alert metadata on each job
-- warns when a source returns zero jobs for 2 consecutive runs
-
-### Phase 4 - Vercel Dashboard
-
-Goal: provide a protected dashboard to review jobs and track application status.
-
-Status: implemented.
-
-Planned views:
-- Inbox
-- Tracker
-- Dashboard
-
-Current approach:
-- load `data/jobs.json` from the repository
-- store application state in Postgres
-- protect owner actions with server routes
-- deploy on Vercel
-
-### Phase 5 - Cover Letter Generation
-
-Goal: generate a tailored cover letter when a job is approved.
-
-Current deliverables:
-- `data/cover_letter_template.tex`
-- `config/cover_letter_prompt.md`
-- `app/api/cover-letter/generate`
-- `app/api/cover-letter/compile`
-- `app/api/cover-letter/pdf`
-- on-demand generation from the dashboard
-- cover letter storage in Postgres
-- Cover Letters page for stored drafts and PDFs
-- dashboard-triggered PDF compilation with Tectonic
-- direct PDF download from the dashboard after compilation
-
-### Phase 6 - GitHub Actions Automation
-
-Goal: run the full pipeline without manual intervention.
-
-Current workflows:
-- `scrape.yml`: fetch, match, notify
-- `cover_letter_pdf.yml`: compile stored cover letters to PDF and persist the result back to Postgres
-
-Expected secrets:
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `DEEPSEEK_API_KEY`
-- `VIEWER_ACCESS_CODE`
-- `OWNER_ACCESS_CODE`
-- `DATABASE_URL` or `POSTGRES_URL`
-
-## Repository Layout
-
-```text
-jobfinder/
-├── .github/
-│   └── workflows/
-│       ├── cover_letter_pdf.yml
-│       └── scrape.yml
-├── config/
-│   ├── companies.yaml
-│   ├── cover_letter_prompt.md
-│   ├── matching.yaml
-│   └── sources.yaml
-├── data/
-│   ├── cache/
-│   ├── cover_letter_template.tex
-│   ├── jobs.json
-│   └── resume.md
-├── lib/
-│   ├── cover-letter/
-│   └── dashboard/
-├── app/
-│   ├── api/
-│   │   └── cover-letter/
-│   ├── dashboard/
-│   ├── cover-letters/
-│   ├── inbox/
-│   ├── login/
-│   └── tracker/
-├── docs/
-│   └── company_source_onboarding.md
-├── plans/
-│   ├── masterplan.md
-│   ├── phase2_matching_plan.md
-│   └── scraper_plan.md
-├── scripts/
-│   ├── compile-cover-letter-pdf.mjs
-│   └── sync-resume-to-postgres.mjs
-├── scrapers/
-│   ├── abn_amro.py
-│   ├── albert_heijn.py
-│   ├── __init__.py
-│   ├── base.py
-│   ├── greenhouse.py
-│   ├── html.py
-│   ├── ing.py
-│   └── icims.py
-├── fetch_jobs.py
-├── dashboard-tests/
-│   ├── auth.test.ts
-│   └── data.test.ts
-├── components/
-├── match_jobs.py
-├── notify.py
-├── package.json
-├── pyproject.toml
-├── tests/
-│   └── test_match_jobs.py
-├── tsconfig.json
-└── uv.lock
-```
-
-## Current Usage
-
-This project uses `uv` and currently supports the scraper pipeline plus Phase 2 matching.
-
-Install dependencies:
+<details>
+<summary><strong>1. Install both application environments</strong></summary>
 
 ```bash
 uv sync
+pnpm install --frozen-lockfile
 ```
 
-Fetch all active companies:
+</details>
+
+<details>
+<summary><strong>2. Configure private services</strong></summary>
+
+Create a local `.env` with only the services you intend to use:
+
+```bash
+DEEPSEEK_API_KEY=...
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
+VIEWER_ACCESS_CODE=...
+OWNER_ACCESS_CODE=...
+DATABASE_URL=...
+```
+
+The scraper itself can run without the AI, Telegram, or dashboard credentials.
+
+</details>
+
+<details>
+<summary><strong>3. Refresh and score jobs</strong></summary>
 
 ```bash
 uv run python fetch_jobs.py
-```
-
-Force refresh all active companies:
-
-```bash
-uv run python fetch_jobs.py --force
-```
-
-Fetch one company:
-
-```bash
-uv run python fetch_jobs.py --company booking_com
-uv run python fetch_jobs.py --company tno
-uv run python fetch_jobs.py --company adyen
-uv run python fetch_jobs.py --company abn_amro
-uv run python fetch_jobs.py --company ing
-uv run python fetch_jobs.py --company albert_heijn
-```
-
-Configure matching preferences in `config/matching.yaml`.
-If you want to use a different DeepSeek model than the default, update
-`matching.llm.model` there before running the matcher.
-
-Main secrets now live in `.env`:
-
-```bash
-DEEPSEEK_API_KEY=your_key_here
-TELEGRAM_BOT_TOKEN=your_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
-VIEWER_ACCESS_CODE=your_viewer_code_here
-OWNER_ACCESS_CODE=your_owner_code_here
-DATABASE_URL=your_postgres_connection_string
-```
-
-`DEEPSEEK_API_KEY` is used by matching. `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
-are used by `notify.py`. `VIEWER_ACCESS_CODE` and `OWNER_ACCESS_CODE` protect the
-dashboard. `DATABASE_URL` or `POSTGRES_URL` is used for owner status write-back
-and persisted application state, resume storage, and cover letter storage.
-`DEEPSEEK_API_KEY` is also used by the dashboard cover-letter generation route.
-
-For cover letter generation in production, the dashboard reads the resume from
-Postgres instead of from the local gitignored file. After you configure
-`DATABASE_URL` or `POSTGRES_URL`, sync your local resume once with:
-
-```bash
-pnpm sync:resume
-```
-
-That command uploads [`data/resume.md`](/Users/sai/Documents/Projects/jobfinder/data/resume.md) into the
-`profile_documents` table under the `resume_markdown` key.
-
-Compile a stored cover letter PDF locally:
-
-```bash
-pnpm compile:cover-letter-pdf -- --job-id ing::35870385728
-```
-
-GitHub Actions now includes:
-- `Scrape Jobs` for scheduled/manual fetch + match + notify + repo state commit-back
-- `Cover Letter PDF` for manual Tectonic PDF compilation from stored Postgres cover letters
-
-If you prefer exporting the current required key directly:
-
-```bash
-export DEEPSEEK_API_KEY=your_key_here
-```
-
-Score all jobs:
-
-```bash
 uv run python match_jobs.py
-```
-
-Preview matching without writing `data/jobs.json`:
-
-```bash
-uv run python match_jobs.py --dry-run --rescore-all
-```
-
-Score one company or one job:
-
-```bash
-uv run python match_jobs.py --company booking_com
-uv run python match_jobs.py --job-id abn_amro::9162
-```
-
-Send Telegram alerts for newly qualified jobs:
-
-```bash
-uv run python notify.py
-```
-
-Preview alerts without sending or writing:
-
-```bash
 uv run python notify.py --dry-run
 ```
 
-Scope job alerts or check only source failures:
+Useful focused commands:
 
 ```bash
-uv run python notify.py --company booking_com
-uv run python notify.py --failures-only
-uv run python notify.py --dry-run --resend
+uv run python fetch_jobs.py --company adyen
+uv run python fetch_jobs.py --force
+uv run python match_jobs.py --rescore-all
 ```
 
-Run the dashboard locally:
+</details>
+
+<details>
+<summary><strong>4. Open the dashboard</strong></summary>
 
 ```bash
-pnpm install
 pnpm dev
 ```
 
-Then open `http://localhost:3000/login` and enter either the viewer code or owner code
-from `.env`.
+Visit `http://localhost:3000`.
 
-## Data Model
+</details>
 
-Current normalized and matched jobs are stored in [`data/jobs.json`](/Users/sai/Documents/Projects/jobfinder/data/jobs.json).
+---
 
-Each record includes core fields such as:
-- `id`
-- `company_id`
-- `company_name`
-- `title`
-- `url`
-- `location`
-- `categories`
-- `description`
-- `posted_date`
-- `first_seen`
-- `last_seen`
-- `source`
+## 🗺️ Repository Guide
 
-The current schema includes match metadata from Phase 2 and alert metadata from Phase 3. The planned end-state schema will add application lifecycle state.
+```text
+jobfinder/
+├── app/                 Next.js pages and server routes
+├── components/          dashboard views and interaction components
+├── config/              companies, sources, matching rules, and prompts
+├── data/                normalized jobs and local workflow artifacts
+├── lib/                 authentication, dashboard data, Postgres, and cover letters
+├── scrapers/            reusable and company-specific source adapters
+├── tests/               Python pipeline tests
+├── dashboard-tests/     dashboard and API route tests
+├── fetch_jobs.py        scheduled discovery entry point
+├── match_jobs.py        staged resume-matching entry point
+└── notify.py            Telegram and source-health notification entry point
+```
 
-## Tech Choices
+To add another employer, follow
+[`docs/company_source_onboarding.md`](docs/company_source_onboarding.md).
 
-Current stack:
-- Python 3.11+
-- `requests`
-- `beautifulsoup4`
-- `PyYAML`
-- DeepSeek API for scoring
-- JSON files in-repo for scraped/matched job state
-- Telegram notifications
-- Next.js on Vercel for the dashboard
-- Postgres for application state, resume storage, and cover letters
-- GitHub Actions automation
+## 🧭 Design Principles
 
-## Notes
+- **Direct sources first:** prefer public APIs and stable HTML over browser automation.
+- **Cheap checks first:** reserve LLM scoring for roles that survive deterministic filters.
+- **Explain the score:** store the rationale alongside the number.
+- **One alert per opportunity:** persist alert metadata to avoid repeated notifications.
+- **Human decisions remain final:** JobFinder prioritizes roles; it does not apply
+  automatically.
+- **Operational visibility matters:** source-health tracking warns when a careers feed
+  quietly stops returning jobs.
 
-- [`plans/masterplan.md`](/Users/sai/Documents/Projects/jobfinder/plans/masterplan.md) is the product blueprint.
-- [`plans/scraper_plan.md`](/Users/sai/Documents/Projects/jobfinder/plans/scraper_plan.md) documents the completed Phase 1 scraper implementation.
-- [`plans/phase2_matching_plan.md`](/Users/sai/Documents/Projects/jobfinder/plans/phase2_matching_plan.md) documents the implemented Phase 2 matching pipeline.
-- [`config/sources.yaml`](/Users/sai/Documents/Projects/jobfinder/config/sources.yaml) is the source registry and investigation log.
-- [`docs/company_source_onboarding.md`](/Users/sai/Documents/Projects/jobfinder/docs/company_source_onboarding.md) documents how to evaluate and add new company sources.
+---
+
+## ⚠️ Practical Notes
+
+- Career sites change, so individual source adapters may require maintenance.
+- AI scores are prioritization aids, not objective hiring predictions.
+- The checked-in job feed is refreshed by automation and will change over time.
+- Generated cover letters should always be reviewed before they are submitted.
+- This is a personal workflow rather than a multi-user recruiting platform.
+
+---
+
+<div align="center">
+
+### 💼 Stop searching everywhere. Start deciding from one place.
+
+</div>

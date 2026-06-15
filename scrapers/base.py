@@ -1,3 +1,5 @@
+"""Shared normalization and HTTP behavior for all career-source adapters."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -60,6 +62,8 @@ def iso_date(value: str | None) -> str | None:
 
 
 class BaseScraper(ABC):
+    """Contract implemented by API-backed and HTML-backed company scrapers."""
+
     source = "unknown"
 
     def __init__(self, company: Mapping[str, Any], session: requests.Session | None = None) -> None:
@@ -79,6 +83,7 @@ class BaseScraper(ABC):
         return str(self.company["name"])
 
     def request_text(self, url: str, params: Mapping[str, Any] | None = None) -> str:
+        """Fetch text with requests and a browser-like fallback for blocked sites."""
         prepared = requests.PreparedRequest()
         prepared.prepare_url(url, params)
 
@@ -105,6 +110,7 @@ class BaseScraper(ABC):
         return response.text
 
     def request_json(self, url: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
+        """Fetch and decode a JSON object using the shared session."""
         response = self.session.get(url, params=params, timeout=self.timeout)
         response.raise_for_status()
         return response.json()
@@ -118,4 +124,5 @@ class BaseScraper(ABC):
         raise NotImplementedError
 
     def normalize_jobs(self, raw_jobs: list[dict[str, Any]], fetched_at: str) -> list[dict[str, Any]]:
+        """Normalize every source-specific record into the shared vacancy schema."""
         return [self.normalize_job(raw_job, fetched_at) for raw_job in raw_jobs]

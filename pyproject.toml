@@ -1,7 +1,7 @@
 [project]
 name = "jobfinder"
 version = "0.1.0"
-description = "Phase 1 job scraping pipeline"
+description = "Personal job discovery, AI matching, alerting, tracking, and cover-letter workflow"
 requires-python = ">=3.11"
 dependencies = [
   "beautifulsoup4>=4.13.4",
