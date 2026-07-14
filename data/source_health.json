@@ -4,48 +4,48 @@
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-07-14T09:45:48Z"
+    "updated_at": "2026-07-14T17:01:47Z"
   },
   "tno": {
     "last_seen_job_count": 0,
-    "consecutive_zero_job_runs": 2,
+    "consecutive_zero_job_runs": 3,
     "failure_alerted": true,
     "failure_alerted_at": "2026-07-14T09:45:48Z",
-    "updated_at": "2026-07-14T09:45:48Z"
+    "updated_at": "2026-07-14T17:01:47Z"
   },
   "just_eat_takeaway": {
-    "last_seen_job_count": 7,
-    "consecutive_zero_job_runs": 0,
-    "failure_alerted": false,
-    "failure_alerted_at": null,
-    "updated_at": "2026-07-14T09:45:48Z"
-  },
-  "adyen": {
-    "last_seen_job_count": 13,
-    "consecutive_zero_job_runs": 0,
-    "failure_alerted": false,
-    "failure_alerted_at": null,
-    "updated_at": "2026-07-14T09:45:48Z"
-  },
-  "abn_amro": {
     "last_seen_job_count": 6,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-07-14T09:45:48Z"
+    "updated_at": "2026-07-14T17:01:47Z"
+  },
+  "adyen": {
+    "last_seen_job_count": 14,
+    "consecutive_zero_job_runs": 0,
+    "failure_alerted": false,
+    "failure_alerted_at": null,
+    "updated_at": "2026-07-14T17:01:47Z"
+  },
+  "abn_amro": {
+    "last_seen_job_count": 5,
+    "consecutive_zero_job_runs": 0,
+    "failure_alerted": false,
+    "failure_alerted_at": null,
+    "updated_at": "2026-07-14T17:01:47Z"
   },
   "ing": {
     "last_seen_job_count": 2,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-07-14T09:45:48Z"
+    "updated_at": "2026-07-14T17:01:47Z"
   },
   "albert_heijn": {
     "last_seen_job_count": 0,
-    "consecutive_zero_job_runs": 46,
+    "consecutive_zero_job_runs": 47,
     "failure_alerted": true,
     "failure_alerted_at": "2026-06-29T18:03:22Z",
-    "updated_at": "2026-07-14T09:45:48Z"
+    "updated_at": "2026-07-14T17:01:47Z"
   }
 }
