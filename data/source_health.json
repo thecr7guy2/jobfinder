@@ -1,51 +1,51 @@
 {
   "booking_com": {
     "last_seen_job_count": 0,
-    "consecutive_zero_job_runs": 16,
+    "consecutive_zero_job_runs": 17,
     "failure_alerted": true,
     "failure_alerted_at": "2026-08-25T00:35:25Z",
-    "updated_at": "2026-08-30T13:24:05Z"
+    "updated_at": "2026-08-30T18:54:26Z"
   },
   "tno": {
-    "last_seen_job_count": 3,
-    "consecutive_zero_job_runs": 0,
+    "last_seen_job_count": 0,
+    "consecutive_zero_job_runs": 1,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-08-30T13:24:05Z"
+    "updated_at": "2026-08-30T18:54:26Z"
   },
   "just_eat_takeaway": {
     "last_seen_job_count": 2,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-08-30T13:24:05Z"
+    "updated_at": "2026-08-30T18:54:26Z"
   },
   "adyen": {
     "last_seen_job_count": 22,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-08-30T13:24:05Z"
+    "updated_at": "2026-08-30T18:54:26Z"
   },
   "abn_amro": {
     "last_seen_job_count": 3,
     "consecutive_zero_job_runs": 0,
     "failure_alerted": false,
     "failure_alerted_at": null,
-    "updated_at": "2026-08-30T13:24:05Z"
+    "updated_at": "2026-08-30T18:54:26Z"
   },
   "ing": {
     "last_seen_job_count": 0,
-    "consecutive_zero_job_runs": 100,
+    "consecutive_zero_job_runs": 101,
     "failure_alerted": true,
     "failure_alerted_at": "2026-07-27T17:28:24Z",
-    "updated_at": "2026-08-30T13:24:05Z"
+    "updated_at": "2026-08-30T18:54:26Z"
   },
   "albert_heijn": {
     "last_seen_job_count": 0,
-    "consecutive_zero_job_runs": 184,
+    "consecutive_zero_job_runs": 185,
     "failure_alerted": true,
     "failure_alerted_at": "2026-06-29T18:03:22Z",
-    "updated_at": "2026-08-30T13:24:05Z"
+    "updated_at": "2026-08-30T18:54:26Z"
   }
 }
